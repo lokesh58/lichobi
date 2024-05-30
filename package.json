@@ -1,0 +1,12 @@
+{
+  "name": "lichobi",
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {},
+  "private": true,
+  "devDependencies": {
+    "@nx/js": "19.1.1",
+    "@nx/node": "19.1.1",
+    "nx": "19.1.1"
+  }
+}
