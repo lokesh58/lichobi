@@ -1,0 +1,36 @@
+{
+  "name": "lichobi",
+  "version": "0.0.0",
+  "description": "A discord bot named Lichobi",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "rm -rf build && tsc",
+    "start": "node build/index.js",
+    "build:start": "pnpm run build && pnpm run start",
+    "dev": "nodemon --watch ./src --ext ts,json src/index.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --check",
+    "format:fix": "prettier . --fix"
+  },
+  "engines": {
+    "node": ">=20.11.0",
+    "pnpm": ">=8.15.4"
+  },
+  "keywords": [],
+  "author": "lokesh58",
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/compat": "^1.1.1",
+    "@eslint/js": "^9.9.0",
+    "@types/node": "^22.2.0",
+    "eslint": "9.x",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^15.9.0",
+    "nodemon": "^3.1.4",
+    "prettier": "3.3.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.0.1"
+  }
+}
