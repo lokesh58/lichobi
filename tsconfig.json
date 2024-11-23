@@ -10,8 +10,11 @@
     "strict": true,
     "exactOptionalPropertyTypes": true,
     "skipLibCheck": true,
-    "paths": {}
+    "paths": {
+      "#lichobi/framework": ["./src/framework/index.js"],
+      "#root/*": ["./src/*"]
+    }
   },
-  "include": ["./src/**.ts", "./src/**.json"],
+  "include": ["./src/**/*.ts", "./src/**/*.json"],
   "exclude": ["./build", "node_modules"]
 }

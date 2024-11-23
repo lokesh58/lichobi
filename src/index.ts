@@ -1,22 +1,26 @@
-import { Client, Events, GatewayIntentBits } from "discord.js";
+import config from "#root/config.js";
+import { Bot } from "#lichobi/framework";
+import { Events, GatewayIntentBits } from "discord.js";
 
-import "dotenv/config";
-
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-  ],
+const bot = new Bot({
+  clientOptions: {
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+    ],
+  },
+  loggerOptions: {
+    minLogLevel: config.minLogLevel ?? "info",
+  },
 });
 
-client.once(Events.ClientReady, (readyClient) => {
-  console.log(`Ready! Logged in as ${readyClient.user.tag}`);
+bot.client.once(Events.ClientReady, (readyClient) => {
+  bot.logger.info(`Ready! Logged in as ${readyClient.user.tag}`);
 });
 
-client.on(Events.MessageCreate, (message) => {
-  console.log(`Recieved message: [${message.author.tag}] ${message.content}`);
+bot.client.on(Events.MessageCreate, (message) => {
   if (message.content.toLowerCase() === "ping") return message.reply("Pong!");
 });
 
-client.login(process.env.DISCORD_BOT_TOKEN);
+bot.bootUp(config.discordBotToken);
