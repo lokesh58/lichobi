@@ -6,13 +6,17 @@ export type BotOptions = {
   loggerOptions?: LoggerOptions;
 };
 
-export class Bot {
-  public readonly client: Client;
+export class Bot<Ready extends boolean = boolean> {
+  public readonly client: Client<Ready>;
   public readonly logger: Logger;
 
   constructor(options: BotOptions) {
     this.client = new Client(options.clientOptions);
     this.logger = new Logger(options.loggerOptions);
+  }
+
+  public isReady(): this is Bot<true> {
+    return this.client.isReady();
   }
 
   public async bootUp(token: string): Promise<void> {
