@@ -14,6 +14,9 @@ dependencies:
   discord.js:
     specifier: ^14.15.3
     version: 14.15.3
+  ts-mixer:
+    specifier: ^6.0.4
+    version: 6.0.4
   zod:
     specifier: ^3.23.8
     version: 3.23.8
@@ -46,6 +49,9 @@ devDependencies:
   tsx:
     specifier: ^4.19.2
     version: 4.19.2
+  type-fest:
+    specifier: ^4.27.1
+    version: 4.27.1
   typescript:
     specifier: ^5.5.4
     version: 5.5.4
@@ -1565,6 +1571,11 @@ packages:
     engines: {node: '>= 0.8.0'}
     dependencies:
       prelude-ls: 1.2.1
+    dev: true
+
+  /type-fest@4.27.1:
+    resolution: {integrity: sha512-3Ta7CyV6daqpwuGJMJKABaUChZZejpzysZkQg1//bLRg2wKQ4duwsg3MMIsHuElq58iDqizg4DBUmK8H8wExJg==}
+    engines: {node: '>=16'}
     dev: true
 
   /typescript-eslint@8.0.1(eslint@9.9.0)(typescript@5.5.4):
