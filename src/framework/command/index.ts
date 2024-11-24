@@ -8,6 +8,10 @@ import {
   ChatInputCommandMixinClass,
 } from "./chatInputCommandMixin.js";
 import {
+  LegacyMessageCommandMixin,
+  LegacyMessageCommandMixinClass,
+} from "./legacyMessageCommandMixin.js";
+import {
   MessageContextMenuCommandMixin,
   MessageContextMenuCommandMixinClass,
 } from "./messageContextMenuCommandMixin.js";
@@ -23,6 +27,7 @@ export { BaseUserContextMenuCommandMixin } from "./userContextMenuCommandMixin.j
 
 type CommandMixinClass =
   | ChatInputCommandMixinClass
+  | LegacyMessageCommandMixinClass
   | MessageContextMenuCommandMixinClass
   | UserContextMenuCommandMixinClass;
 
@@ -45,5 +50,6 @@ export function LichobiCommand<
 }
 LichobiCommand.Base = Command;
 LichobiCommand.ChatInputCommandMixin = ChatInputCommandMixin;
+LichobiCommand.LegacyMessageCommandMixin = LegacyMessageCommandMixin;
 LichobiCommand.MessageContextMenuCommandMixin = MessageContextMenuCommandMixin;
 LichobiCommand.UserContextMenuCommandMixin = UserContextMenuCommandMixin;

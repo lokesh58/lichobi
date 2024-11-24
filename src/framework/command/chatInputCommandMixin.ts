@@ -63,7 +63,7 @@ type ChatInputCommandOption =
   | ApplicationCommandAttachmentOption;
 
 type ChatInputCommandData = {
-  description: string;
+  description?: string;
   descriptionLocalizations?: LocalizationMap;
   options?: readonly ChatInputCommandOption[];
 };
