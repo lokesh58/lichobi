@@ -24,11 +24,11 @@ export abstract class BaseLegacyMessageCommandMixin<
 }
 
 export function LegacyMessageCommandMixin<InGuild extends boolean = boolean>(
-  legacyMessageCommandData: LegacyMessageCommandData,
+  legacyMessageCommandData?: LegacyMessageCommandData,
 ) {
   abstract class ExtendedBaseLegacyMessageCommandMixin extends BaseLegacyMessageCommandMixin<InGuild> {
     public getLegacyMessageCommandData(): LegacyMessageCommandData {
-      return legacyMessageCommandData;
+      return legacyMessageCommandData || ({} as LegacyMessageCommandData);
     }
   }
   return ExtendedBaseLegacyMessageCommandMixin;

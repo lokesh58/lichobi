@@ -198,13 +198,13 @@ export abstract class BaseChatInputCommandMixin<
 export function ChatInputCommandMixin<
   Cached extends CacheType = CacheType,
   const CommandData extends ChatInputCommandData = ChatInputCommandData,
->(chatInputCommandData: CommandData) {
+>(chatInputCommandData?: CommandData) {
   abstract class ExtendedBaseChatInputCommandMixin extends BaseChatInputCommandMixin<
     Cached,
     CommandData
   > {
     public getChatInputCommandData(): CommandData {
-      return chatInputCommandData;
+      return chatInputCommandData || ({} as CommandData);
     }
   }
   return ExtendedBaseChatInputCommandMixin;
