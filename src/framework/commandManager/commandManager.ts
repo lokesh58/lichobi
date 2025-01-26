@@ -1,6 +1,7 @@
 import { Events, Message } from "discord.js";
 import { Bot } from "../bot.js";
 import { CommandRegistry } from "./commandRegistry.js";
+import { LichobiError, UserDisplayableError } from "../errors.js";
 
 export type CommandManagerOptions = {
   commandsFolder: string;
@@ -31,57 +32,93 @@ export class CommandManager {
       if (!interaction.isCommand()) {
         return;
       }
-      const command = this.commands.get(interaction.commandName);
-      if (!command) {
-        this.bot.logger.warn(
-          `Command with name '${interaction.commandName}' not found.`,
+      try {
+        const command = this.commands.get(interaction.commandName);
+        if (!command) {
+          throw new LichobiError(
+            `Command with name '${interaction.commandName}' not found.`,
+          );
+        }
+
+        if (interaction.isChatInputCommand()) {
+          if (!command.hasChatInputMixin()) {
+            throw new LichobiError(
+              `Command with name '${interaction.commandName}' is not a chat input command.`,
+            );
+          }
+          await command.handleChatInput(interaction);
+        }
+
+        if (interaction.isMessageContextMenuCommand()) {
+          if (!command.hasMessageContextMenuMixin()) {
+            throw new LichobiError(
+              `Command with name '${interaction.commandName}' is not a message context menu command.`,
+            );
+          }
+          await command.handleMessageContext(interaction);
+        }
+
+        if (interaction.isUserContextMenuCommand()) {
+          if (!command.hasUserContextMenuMixin()) {
+            throw new LichobiError(
+              `Command with name '${interaction.commandName}' is not a user context menu command.`,
+            );
+          }
+          await command.handleUserContext(interaction);
+        }
+      } catch (error) {
+        this.bot.logger.error(
+          `An error occurred while handling command '${interaction.commandName}'.`,
+          error,
         );
-        return;
-      }
-
-      if (interaction.isChatInputCommand()) {
-        if (!command.hasChatInputMixin()) {
-          this.bot.logger.warn(
-            `Command with name '${interaction.commandName}' is not a chat input command.`,
-          );
-          return;
+        if (interaction.deferred || interaction.replied) {
+          await interaction
+            .followUp({
+              content:
+                error instanceof UserDisplayableError
+                  ? error.message
+                  : "An unexpected error occurred. Please try again later.",
+              ephemeral: true,
+            })
+            .catch((reason) => this.bot.logger.error(reason));
+        } else {
+          await interaction
+            .reply({
+              content:
+                error instanceof UserDisplayableError
+                  ? error.message
+                  : "An unexpected error occurred. Please try again later.",
+              ephemeral: true,
+            })
+            .catch((reason) => this.bot.logger.error(reason));
         }
-        await command.handleChatInput(interaction);
-      }
-
-      if (interaction.isMessageContextMenuCommand()) {
-        if (!command.hasMessageContextMenuMixin()) {
-          this.bot.logger.warn(
-            `Command with name '${interaction.commandName}' is not a message context menu command.`,
-          );
-          return;
-        }
-        await command.handleMessageContext(interaction);
-      }
-
-      if (interaction.isUserContextMenuCommand()) {
-        if (!command.hasUserContextMenuMixin()) {
-          this.bot.logger.warn(
-            `Command with name '${interaction.commandName}' is not a user context menu command.`,
-          );
-          return;
-        }
-        await command.handleUserContext(interaction);
       }
     });
   }
 
   private startLegacyMessageCommandHandler(): void {
     this.bot.client.on(Events.MessageCreate, async (message) => {
-      const commandName = await this.extractCommandNameFromMessage(message);
-      if (!commandName) {
-        return;
+      try {
+        const commandName = await this.extractCommandNameFromMessage(message);
+        if (!commandName) {
+          return;
+        }
+        const command = this.commands.get(commandName);
+        if (!command || !command.hasLegacyMessageMixin()) {
+          return;
+        }
+        await command.handleLegacyMessage(message);
+      } catch (error) {
+        this.bot.logger.error(
+          `An error occurred while handling command '${message.content}'.`,
+          error,
+        );
+        await message.reply(
+          error instanceof UserDisplayableError
+            ? error.message
+            : "An unexpected error occurred. Please try again later.",
+        );
       }
-      const command = this.commands.get(commandName);
-      if (!command || !command.hasLegacyMessageMixin()) {
-        return;
-      }
-      await command.handleLegacyMessage(message);
     });
   }
 
