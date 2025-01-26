@@ -1,4 +1,4 @@
-import { Client, ClientOptions } from "discord.js";
+import { Client, ClientOptions, Events } from "discord.js";
 import { Logger, LoggerOptions } from "./logger.js";
 import {
   CommandManager,
@@ -31,9 +31,12 @@ export class Bot<Ready extends boolean = boolean> {
 
   public async bootUp(token: string): Promise<void> {
     // Logging setup
-    this.client.on("debug", (message) => this.logger.debug(message));
-    this.client.on("warn", (message) => this.logger.warn(message));
-    this.client.on("error", (message) => this.logger.error(message));
+    this.client.on(Events.Debug, (message) => this.logger.debug(message));
+    this.client.on(Events.Warn, (message) => this.logger.warn(message));
+    this.client.on(Events.Error, (error) => this.logger.error(error));
+    this.client.once(Events.ClientReady, (readyClient) => {
+      this.logger.info(`Ready! Logged in as ${readyClient.user.tag}`);
+    });
 
     // Command Manager setup
     await this.commandManager.init();
