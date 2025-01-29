@@ -1,7 +1,11 @@
-import { Events, Message } from "discord.js";
+import { ApplicationCommandType, Events, Message } from "discord.js";
 import { Bot } from "../bot.js";
 import { CommandRegistry } from "./commandRegistry.js";
-import { LichobiError, UserDisplayableError } from "../errors.js";
+import {
+  LichobiError,
+  UnknownCommandError,
+  UserDisplayableError,
+} from "../errors.js";
 
 export type CommandManagerOptions = {
   commandsFolder: string;
@@ -9,8 +13,8 @@ export type CommandManagerOptions = {
 
 export class CommandManager {
   private readonly bot: Bot<true>;
-  public readonly commands: CommandRegistry;
   private readonly commandsFolder: string;
+  public readonly commands: CommandRegistry;
 
   constructor(bot: Bot<true>, options: CommandManagerOptions) {
     this.bot = bot;
@@ -32,18 +36,21 @@ export class CommandManager {
       if (!interaction.isCommand()) {
         return;
       }
+      const { commandName, commandId } = interaction;
       try {
-        const command = this.commands.get(interaction.commandName);
+        const command = this.commands.get(commandName);
         if (!command) {
           throw new LichobiError(
-            `Command with name '${interaction.commandName}' not found.`,
+            `Command with name '${commandName}' not found.`,
           );
         }
 
         if (interaction.isChatInputCommand()) {
           if (!command.hasChatInputMixin()) {
-            throw new LichobiError(
-              `Command with name '${interaction.commandName}' is not a chat input command.`,
+            throw new UnknownCommandError(
+              commandId,
+              commandName,
+              ApplicationCommandType.ChatInput,
             );
           }
           await command.handleChatInput(interaction);
@@ -51,8 +58,10 @@ export class CommandManager {
 
         if (interaction.isMessageContextMenuCommand()) {
           if (!command.hasMessageContextMenuMixin()) {
-            throw new LichobiError(
-              `Command with name '${interaction.commandName}' is not a message context menu command.`,
+            throw new UnknownCommandError(
+              commandId,
+              commandName,
+              ApplicationCommandType.Message,
             );
           }
           await command.handleMessageContext(interaction);
@@ -60,15 +69,17 @@ export class CommandManager {
 
         if (interaction.isUserContextMenuCommand()) {
           if (!command.hasUserContextMenuMixin()) {
-            throw new LichobiError(
-              `Command with name '${interaction.commandName}' is not a user context menu command.`,
+            throw new UnknownCommandError(
+              commandId,
+              commandName,
+              ApplicationCommandType.User,
             );
           }
           await command.handleUserContext(interaction);
         }
       } catch (error) {
         this.bot.logger.error(
-          `An error occurred while handling command '${interaction.commandName}'.`,
+          `An error occurred while handling command '${commandName}'.`,
           error,
         );
         if (interaction.deferred || interaction.replied) {
