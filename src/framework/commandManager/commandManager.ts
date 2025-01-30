@@ -1,11 +1,21 @@
-import { ApplicationCommandType, Events, Message } from "discord.js";
+import {
+  APIEmbed,
+  ApplicationCommandType,
+  ChatInputCommandInteraction,
+  EmbedBuilder,
+  Events,
+  InteractionReplyOptions,
+  Message,
+  MessageContextMenuCommandInteraction,
+  UserContextMenuCommandInteraction,
+} from "discord.js";
 import { Bot } from "../bot.js";
-import { CommandRegistry } from "./commandRegistry.js";
 import {
   LichobiError,
+  UnexpectedError,
   UnknownCommandError,
-  UserDisplayableError,
 } from "../errors.js";
+import { CommandRegistry } from "./commandRegistry.js";
 
 export type CommandManagerOptions = {
   commandsFolder: string;
@@ -36,79 +46,97 @@ export class CommandManager {
       if (!interaction.isCommand()) {
         return;
       }
-      const { commandName, commandId } = interaction;
       try {
-        const command = this.commands.get(commandName);
-        if (!command) {
-          throw new LichobiError(
-            `Command with name '${commandName}' not found.`,
-          );
-        }
-
         if (interaction.isChatInputCommand()) {
-          if (!command.hasChatInputMixin()) {
-            throw new UnknownCommandError(
-              commandId,
-              commandName,
-              ApplicationCommandType.ChatInput,
-            );
-          }
-          await command.handleChatInput(interaction);
-        }
-
-        if (interaction.isMessageContextMenuCommand()) {
-          if (!command.hasMessageContextMenuMixin()) {
-            throw new UnknownCommandError(
-              commandId,
-              commandName,
-              ApplicationCommandType.Message,
-            );
-          }
-          await command.handleMessageContext(interaction);
-        }
-
-        if (interaction.isUserContextMenuCommand()) {
-          if (!command.hasUserContextMenuMixin()) {
-            throw new UnknownCommandError(
-              commandId,
-              commandName,
-              ApplicationCommandType.User,
-            );
-          }
-          await command.handleUserContext(interaction);
+          await this.handleChatInputInteraction(interaction);
+        } else if (interaction.isMessageContextMenuCommand()) {
+          await this.handleMessageContextMenuInteraction(interaction);
+        } else if (interaction.isUserContextMenuCommand()) {
+          await this.handleUserContextMenuInteraction(interaction);
         }
       } catch (error) {
         this.bot.logger.error(
-          `An error occurred while handling command '${commandName}'.`,
+          `An error occurred while handling command '${interaction.commandName}'.`,
           error,
         );
+        const response: InteractionReplyOptions = {
+          embeds: [this.generateErrorEmbed(error)],
+          ephemeral: true,
+        };
         if (interaction.deferred || interaction.replied) {
           await interaction
-            .followUp({
-              content:
-                error instanceof UserDisplayableError
-                  ? error.message
-                  : "An unexpected error occurred. Please try again later.",
-              ephemeral: true,
-            })
+            .followUp(response)
             .catch((reason) => this.bot.logger.error(reason));
         } else {
           await interaction
-            .reply({
-              content:
-                error instanceof UserDisplayableError
-                  ? error.message
-                  : "An unexpected error occurred. Please try again later.",
-              ephemeral: true,
-            })
+            .reply(response)
             .catch((reason) => this.bot.logger.error(reason));
         }
       }
     });
   }
 
+  private async handleChatInputInteraction(
+    interaction: ChatInputCommandInteraction,
+  ): Promise<void> {
+    const { commandId, commandName } = interaction;
+    const command = this.commands.get(commandName);
+    if (!command || !command.hasChatInputMixin()) {
+      throw new UnknownCommandError(
+        commandId,
+        commandName,
+        ApplicationCommandType.ChatInput,
+      );
+    }
+    await command.handleChatInput(interaction);
+  }
+
+  private async handleMessageContextMenuInteraction(
+    interaction: MessageContextMenuCommandInteraction,
+  ): Promise<void> {
+    const { commandId, commandName } = interaction;
+    const command = this.commands.get(commandName);
+    if (!command || !command.hasMessageContextMenuMixin()) {
+      throw new UnknownCommandError(
+        commandId,
+        commandName,
+        ApplicationCommandType.Message,
+      );
+    }
+    await command.handleMessageContext(interaction);
+  }
+
+  private async handleUserContextMenuInteraction(
+    interaction: UserContextMenuCommandInteraction,
+  ): Promise<void> {
+    const { commandId, commandName } = interaction;
+    const command = this.commands.get(commandName);
+    if (!command || !command.hasUserContextMenuMixin()) {
+      throw new UnknownCommandError(
+        commandId,
+        commandName,
+        ApplicationCommandType.User,
+      );
+    }
+    await command.handleUserContext(interaction);
+  }
+
+  private generateErrorEmbed(rawError: unknown): APIEmbed {
+    const error =
+      rawError instanceof LichobiError
+        ? rawError
+        : new UnexpectedError(rawError);
+    return new EmbedBuilder()
+      .setDescription(error.displayMessage())
+      .setColor("Red")
+      .toJSON();
+  }
+
   private startLegacyMessageCommandHandler(): void {
     this.bot.client.on(Events.MessageCreate, async (message) => {
+      if (message.author.bot) {
+        return;
+      }
       try {
         const commandName = await this.extractCommandNameFromMessage(message);
         if (!commandName) {
@@ -124,11 +152,9 @@ export class CommandManager {
           `An error occurred while handling command '${message.content}'.`,
           error,
         );
-        await message.reply(
-          error instanceof UserDisplayableError
-            ? error.message
-            : "An unexpected error occurred. Please try again later.",
-        );
+        await message.reply({
+          embeds: [this.generateErrorEmbed(error)],
+        });
       }
     });
   }

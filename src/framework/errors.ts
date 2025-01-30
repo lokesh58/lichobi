@@ -1,13 +1,20 @@
 import { ApplicationCommandType } from "discord.js";
 
-export class LichobiError extends Error {}
+export class LichobiError extends Error {
+  public displayMessage(): string {
+    return "🐛 Something went wrong, please try again later!";
+  }
+}
 
-export class UserDisplayableError extends LichobiError {}
+export class UnexpectedError extends LichobiError {
+  constructor(cause: unknown) {
+    super(`Unexpected Error: ${cause}`, { cause });
+  }
+}
 
 export class UnknownCommandError extends LichobiError {
+  // TODO: Create separate enum / object for type which includes legacy command
   constructor(commandId: string, name: string, type: ApplicationCommandType) {
-    super(
-      `Unknown application command '${name}', id: '${commandId}', type: '${type}'.`,
-    );
+    super(`Unknown command: ${name} (${commandId}) of type ${type}`);
   }
 }
