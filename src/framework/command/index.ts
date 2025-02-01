@@ -53,6 +53,16 @@ LichobiCommand.LegacyMessageCommandMixin = LegacyMessageCommandMixin;
 LichobiCommand.MessageContextMenuCommandMixin = MessageContextMenuCommandMixin;
 LichobiCommand.UserContextMenuCommandMixin = UserContextMenuCommandMixin;
 
+export const LichobiCommandType = Object.freeze({
+  ChatInput: "CHAT_INPUT",
+  LegacyMessage: "LEGACY",
+  MessageContextMenu: "MESSAGE",
+  UserContextMenu: "USER",
+});
+
+export type LichobiCommandType =
+  (typeof LichobiCommandType)[keyof typeof LichobiCommandType];
+
 export function isLichobiCommand(value: unknown): value is BaseCommand {
   return hasMixin(value, BaseCommand);
 }

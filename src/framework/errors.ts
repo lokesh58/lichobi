@@ -1,4 +1,4 @@
-import { ApplicationCommandType } from "discord.js";
+import { LichobiCommandType } from "./command/index.js";
 
 export class LichobiError extends Error {
   public displayMessage(): string {
@@ -13,8 +13,7 @@ export class UnexpectedError extends LichobiError {
 }
 
 export class UnknownCommandError extends LichobiError {
-  // TODO: Create separate enum / object for type which includes legacy command
-  constructor(commandId: string, name: string, type: ApplicationCommandType) {
+  constructor(commandId: string, name: string, type: LichobiCommandType) {
     super(`Unknown command: ${name} (${commandId}) of type ${type}`);
   }
 }

@@ -1,6 +1,5 @@
 import {
   APIEmbed,
-  ApplicationCommandType,
   ChatInputCommandInteraction,
   EmbedBuilder,
   Events,
@@ -10,6 +9,7 @@ import {
   UserContextMenuCommandInteraction,
 } from "discord.js";
 import { Bot } from "../bot.js";
+import { LichobiCommandType } from "../command/index.js";
 import {
   LichobiError,
   UnexpectedError,
@@ -85,7 +85,7 @@ export class CommandManager {
       throw new UnknownCommandError(
         commandId,
         commandName,
-        ApplicationCommandType.ChatInput,
+        LichobiCommandType.ChatInput,
       );
     }
     await command.handleChatInput(interaction);
@@ -100,7 +100,7 @@ export class CommandManager {
       throw new UnknownCommandError(
         commandId,
         commandName,
-        ApplicationCommandType.Message,
+        LichobiCommandType.MessageContextMenu,
       );
     }
     await command.handleMessageContext(interaction);
@@ -115,7 +115,7 @@ export class CommandManager {
       throw new UnknownCommandError(
         commandId,
         commandName,
-        ApplicationCommandType.User,
+        LichobiCommandType.UserContextMenu,
       );
     }
     await command.handleUserContext(interaction);
