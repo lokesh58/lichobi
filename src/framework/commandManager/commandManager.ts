@@ -1,5 +1,4 @@
 import {
-  APIEmbed,
   ChatInputCommandInteraction,
   EmbedBuilder,
   Events,
@@ -121,15 +120,14 @@ export class CommandManager {
     await command.handleUserContext(interaction);
   }
 
-  private generateErrorEmbed(rawError: unknown): APIEmbed {
+  private generateErrorEmbed(rawError: unknown): EmbedBuilder {
     const error =
       rawError instanceof LichobiError
         ? rawError
         : new UnexpectedError(rawError);
     return new EmbedBuilder()
       .setDescription(error.displayMessage())
-      .setColor("Red")
-      .toJSON();
+      .setColor("Red");
   }
 
   private startLegacyMessageCommandHandler(): void {

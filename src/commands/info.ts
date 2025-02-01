@@ -42,7 +42,7 @@ export default class InfoCommand extends LichobiCommand(
     });
   }
 
-  private buildInfoEmbed(data: EmbedBuildData) {
+  private buildInfoEmbed(data: EmbedBuildData): EmbedBuilder {
     const { client } = this.bot;
     return new EmbedBuilder()
       .setTitle(`${client.user.username}'s info`)

@@ -1,5 +1,2 @@
-export {
-  CommandManager,
-  type CommandManagerOptions,
-} from "./commandManager.js";
-export { CommandRegistry } from "./commandRegistry.js";
+export * from "./commandManager.js";
+export * from "./commandRegistry.js";

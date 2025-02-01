@@ -1,9 +1,9 @@
 import z from "zod";
-import { LOG_LEVELS } from "#lichobi/framework";
+import { LogLevels } from "#lichobi/framework";
 
 const envSchema = z.object({
   DISCORD_BOT_TOKEN: z.string(),
-  LOG_LEVEL: z.enum(LOG_LEVELS).optional(),
+  LOG_LEVEL: z.enum(LogLevels).optional(),
 });
 
 const env = envSchema.parse(process.env);
