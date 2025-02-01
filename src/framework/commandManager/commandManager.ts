@@ -18,17 +18,20 @@ import { CommandRegistry } from "./commandRegistry.js";
 
 export type CommandManagerOptions = {
   commandsFolder: string;
+  defaultPrefix?: string;
 };
 
 export class CommandManager {
   private readonly bot: Bot<true>;
   private readonly commandsFolder: string;
   public readonly commands: CommandRegistry;
+  private readonly defaultPrefix: string;
 
   constructor(bot: Bot<true>, options: CommandManagerOptions) {
     this.bot = bot;
     this.commands = new CommandRegistry(bot);
     this.commandsFolder = options.commandsFolder;
+    this.defaultPrefix = options.defaultPrefix || "!";
   }
 
   public async init(): Promise<void> {
@@ -160,7 +163,7 @@ export class CommandManager {
   private async extractCommandNameFromMessage(
     message: Message,
   ): Promise<string | null> {
-    const prefix = "!"; // This should be configurable
+    const prefix = this.defaultPrefix; // TODO: make this configurable per guild
     if (!message.content.startsWith(prefix)) {
       return null;
     }
