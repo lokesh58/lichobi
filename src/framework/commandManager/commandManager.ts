@@ -3,13 +3,13 @@ import {
   EmbedBuilder,
   Events,
   InteractionReplyOptions,
-  Message,
   MessageContextMenuCommandInteraction,
   UserContextMenuCommandInteraction,
 } from "discord.js";
 import { Bot } from "../bot.js";
 import { LichobiCommandType } from "../command/index.js";
 import {
+  InvalidCommandError,
   LichobiError,
   UnexpectedError,
   UnknownCommandError,
@@ -58,7 +58,7 @@ export class CommandManager {
         }
       } catch (error) {
         this.bot.logger.error(
-          `An error occurred while handling command '${interaction.commandName}'.`,
+          `Error in interaction command handler for interaction id: ${interaction.id}.`,
           error,
         );
         const response: InteractionReplyOptions = {
@@ -138,19 +138,22 @@ export class CommandManager {
       if (message.author.bot) {
         return;
       }
+      const prefix = await this.getLegacyMessagePrefix();
+      if (!message.content.startsWith(prefix)) {
+        return;
+      }
       try {
-        const commandName = await this.extractCommandNameFromMessage(message);
-        if (!commandName) {
-          return;
-        }
+        const [commandName, argString] = this.extractCommandAndArgsFromMessage(
+          message.content.substring(prefix.length),
+        );
         const command = this.commands.get(commandName);
         if (!command || !command.hasLegacyMessageMixin()) {
-          return;
+          throw new InvalidCommandError(commandName);
         }
-        await command.handleLegacyMessage(message);
+        await command.handleLegacyMessage(message, argString);
       } catch (error) {
         this.bot.logger.error(
-          `An error occurred while handling command '${message.content}'.`,
+          `Error in legacy message command handler for message id: ${message.id}.`,
           error,
         );
         await message.reply({
@@ -160,16 +163,17 @@ export class CommandManager {
     });
   }
 
-  private async extractCommandNameFromMessage(
-    message: Message,
-  ): Promise<string | null> {
-    const prefix = this.defaultPrefix; // TODO: make this configurable per guild
-    if (!message.content.startsWith(prefix)) {
-      return null;
-    }
-    return (
-      message.content.substring(prefix.length).split(/\s+/)[0]?.toLowerCase() ||
-      null
-    );
+  private async getLegacyMessagePrefix(): Promise<string> {
+    return this.defaultPrefix; // TODO: make this configurable per guild, maybe a prefix manager?
+  }
+
+  private extractCommandAndArgsFromMessage(
+    messageWithoutPrefix: string,
+  ): [string, string] {
+    const commandName = messageWithoutPrefix.split(/\s+/)[0].toLowerCase();
+    const argString = messageWithoutPrefix
+      .substring(commandName.length)
+      .trimStart();
+    return [commandName, argString];
   }
 }
