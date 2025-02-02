@@ -3,18 +3,22 @@ import { Class } from "ts-mixer/dist/types/types.js";
 import { UnionToIntersection } from "type-fest";
 import { BaseCommand, BaseCommandClass, Command } from "./base.js";
 import {
+  BaseChatInputCommandMixin,
   ChatInputCommandMixin,
   ChatInputCommandMixinClass,
 } from "./chatInputCommandMixin.js";
 import {
+  BaseLegacyMessageCommandMixin,
   LegacyMessageCommandMixin,
   LegacyMessageCommandMixinClass,
 } from "./legacyMessageCommandMixin.js";
 import {
+  BaseMessageContextMenuCommandMixin,
   MessageContextMenuCommandMixin,
   MessageContextMenuCommandMixinClass,
 } from "./messageContextMenuCommandMixin.js";
 import {
+  BaseUserContextMenuCommandMixin,
   UserContextMenuCommandMixin,
   UserContextMenuCommandMixinClass,
 } from "./userContextMenuCommandMixin.js";
@@ -62,6 +66,16 @@ export const LichobiCommandType = Object.freeze({
 
 export type LichobiCommandType =
   (typeof LichobiCommandType)[keyof typeof LichobiCommandType];
+
+export type LichobiCommandTypeToClassMap = {
+  [LichobiCommandType.ChatInput]: BaseCommand & BaseChatInputCommandMixin;
+  [LichobiCommandType.LegacyMessage]: BaseCommand &
+    BaseLegacyMessageCommandMixin;
+  [LichobiCommandType.MessageContextMenu]: BaseCommand &
+    BaseMessageContextMenuCommandMixin;
+  [LichobiCommandType.UserContextMenu]: BaseCommand &
+    BaseUserContextMenuCommandMixin;
+};
 
 export function isLichobiCommand(value: unknown): value is BaseCommand {
   return hasMixin(value, BaseCommand);

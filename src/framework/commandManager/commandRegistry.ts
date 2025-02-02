@@ -1,15 +1,111 @@
-import { Bot } from "#lichobi/framework";
+import { Bot, LichobiError } from "#lichobi/framework";
 import { readdirSync } from "fs";
 import path from "path";
-import { BaseCommand, isLichobiCommandConstructor } from "../command/index.js";
+import {
+  BaseCommand,
+  isLichobiCommandConstructor,
+  LichobiCommandType,
+  LichobiCommandTypeToClassMap,
+} from "../command/index.js";
 
 export class CommandRegistry {
-  private static readonly VALID_EXTENSIONS = [".js", ".mjs", ".cjs", ".ts"];
-  private readonly commands = new Map<string, BaseCommand>();
+  private static readonly ValidExtensions = [".js", ".mjs", ".cjs", ".ts"];
+
   private readonly bot: Bot<true>;
+
+  private readonly chatInputCommands = new Map<
+    string,
+    LichobiCommandTypeToClassMap["CHAT_INPUT"]
+  >();
+  private readonly legacyMessageCommands = new Map<
+    string,
+    LichobiCommandTypeToClassMap["LEGACY"]
+  >();
+  private readonly messageContextMenuCommands = new Map<
+    string,
+    LichobiCommandTypeToClassMap["MESSAGE"]
+  >();
+  private readonly userContextMenuCommands = new Map<
+    string,
+    LichobiCommandTypeToClassMap["USER"]
+  >();
 
   constructor(bot: Bot<true>) {
     this.bot = bot;
+  }
+
+  public register(command: BaseCommand): void {
+    if (command.hasChatInputMixin()) {
+      this.registerCommandOfType(LichobiCommandType.ChatInput, command);
+    }
+    if (command.hasLegacyMessageMixin()) {
+      this.registerCommandOfType(LichobiCommandType.LegacyMessage, command);
+    }
+    if (command.hasMessageContextMenuMixin()) {
+      this.registerCommandOfType(
+        LichobiCommandType.MessageContextMenu,
+        command,
+      );
+    }
+    if (command.hasUserContextMenuMixin()) {
+      this.registerCommandOfType(LichobiCommandType.UserContextMenu, command);
+    }
+  }
+
+  private registerCommandOfType<T extends LichobiCommandType>(
+    commandType: T,
+    command: LichobiCommandTypeToClassMap[T],
+  ): void {
+    const commandMap = this.getCommandMapForType(commandType);
+    const commandName = command.getBaseCommandData().name.toLowerCase();
+    if (commandMap.has(commandName)) {
+      this.bot.logger.warn(
+        `Command ${commandName} of type ${commandType} is already registered. Skipping registration.`,
+      );
+      return;
+    }
+    commandMap.set(commandName, command);
+    this.bot.logger.info(
+      `Registered command ${commandName} of type ${commandType}.`,
+    );
+  }
+
+  private getCommandMapForType<T extends LichobiCommandType>(
+    commandType: T,
+  ): Map<string, LichobiCommandTypeToClassMap[T]> {
+    switch (commandType) {
+      case LichobiCommandType.ChatInput:
+        return this.chatInputCommands as Map<
+          string,
+          LichobiCommandTypeToClassMap[T]
+        >;
+      case LichobiCommandType.LegacyMessage:
+        return this.legacyMessageCommands as Map<
+          string,
+          LichobiCommandTypeToClassMap[T]
+        >;
+      case LichobiCommandType.MessageContextMenu:
+        return this.messageContextMenuCommands as Map<
+          string,
+          LichobiCommandTypeToClassMap[T]
+        >;
+      case LichobiCommandType.UserContextMenu:
+        return this.userContextMenuCommands as Map<
+          string,
+          LichobiCommandTypeToClassMap[T]
+        >;
+      default:
+        commandType satisfies never;
+        throw new LichobiError(`Unknown command type: ${commandType}`);
+    }
+  }
+
+  public get<T extends LichobiCommandType>(
+    name: string,
+    type: T,
+  ): LichobiCommandTypeToClassMap[T] | undefined {
+    const commandMap = this.getCommandMapForType(type);
+    return commandMap.get(name.toLowerCase());
   }
 
   public async loadFromFolder(folderPath: string): Promise<void> {
@@ -27,41 +123,12 @@ export class CommandRegistry {
           await this.loadCommandsRecursively(fullPath);
         } else if (
           item.isFile() &&
-          CommandRegistry.VALID_EXTENSIONS.includes(path.extname(item.name))
+          CommandRegistry.ValidExtensions.includes(path.extname(item.name))
         ) {
           const commands = await this.importCommand(fullPath);
           commands.forEach((command) => this.register(command));
         }
       }),
-    );
-  }
-
-  public register(command: BaseCommand): void {
-    const commandName = command.getBaseCommandData().name.toLowerCase();
-    if (this.commands.has(commandName)) {
-      this.bot.logger.warn(
-        `Command with name '${commandName}' is already registered. Skipping registration.`,
-      );
-      return;
-    }
-    this.commands.set(commandName, command);
-    this.bot.logger.info(`Successfully registered command: ${commandName}`);
-  }
-
-  public get(name: string): BaseCommand | undefined {
-    return this.commands.get(name.toLowerCase());
-  }
-
-  public getAll(): BaseCommand[] {
-    return [...this.commands.values()];
-  }
-
-  private isValidModule(module: unknown): module is Record<string, unknown> {
-    return (
-      typeof module === "object" &&
-      module !== null &&
-      !Array.isArray(module) &&
-      Object.entries(module as object).length > 0
     );
   }
 
@@ -107,5 +174,14 @@ export class CommandRegistry {
       this.bot.logger.error(`Error loading commands from ${filePath}:`, error);
       return [];
     }
+  }
+
+  private isValidModule(module: unknown): module is Record<string, unknown> {
+    return (
+      typeof module === "object" &&
+      module !== null &&
+      !Array.isArray(module) &&
+      Object.entries(module as object).length > 0
+    );
   }
 }

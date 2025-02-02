@@ -4,6 +4,7 @@ import {
   Events,
   InteractionReplyOptions,
   MessageContextMenuCommandInteraction,
+  MessageFlags,
   UserContextMenuCommandInteraction,
 } from "discord.js";
 import { Bot } from "../bot.js";
@@ -66,7 +67,7 @@ export class CommandManager {
         );
         const response: InteractionReplyOptions = {
           embeds: [this.generateErrorEmbed(error)],
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         };
         if (interaction.deferred || interaction.replied) {
           await interaction
@@ -85,8 +86,11 @@ export class CommandManager {
     interaction: ChatInputCommandInteraction,
   ): Promise<void> {
     const { commandId, commandName } = interaction;
-    const command = this.commands.get(commandName);
-    if (!command || !command.hasChatInputMixin()) {
+    const command = this.commands.get(
+      commandName,
+      LichobiCommandType.ChatInput,
+    );
+    if (!command) {
       throw new UnknownCommandError(
         commandId,
         commandName,
@@ -100,8 +104,11 @@ export class CommandManager {
     interaction: MessageContextMenuCommandInteraction,
   ): Promise<void> {
     const { commandId, commandName } = interaction;
-    const command = this.commands.get(commandName);
-    if (!command || !command.hasMessageContextMenuMixin()) {
+    const command = this.commands.get(
+      commandName,
+      LichobiCommandType.MessageContextMenu,
+    );
+    if (!command) {
       throw new UnknownCommandError(
         commandId,
         commandName,
@@ -115,8 +122,11 @@ export class CommandManager {
     interaction: UserContextMenuCommandInteraction,
   ): Promise<void> {
     const { commandId, commandName } = interaction;
-    const command = this.commands.get(commandName);
-    if (!command || !command.hasUserContextMenuMixin()) {
+    const command = this.commands.get(
+      commandName,
+      LichobiCommandType.UserContextMenu,
+    );
+    if (!command) {
       throw new UnknownCommandError(
         commandId,
         commandName,
@@ -151,8 +161,11 @@ export class CommandManager {
           message.content.substring(prefix.length),
         );
         this.bot.logger.info("Inferred command name:", commandName);
-        const command = this.commands.get(commandName);
-        if (!command || !command.hasLegacyMessageMixin()) {
+        const command = this.commands.get(
+          commandName,
+          LichobiCommandType.LegacyMessage,
+        );
+        if (!command) {
           throw new InvalidCommandError(commandName);
         }
         await command.handleLegacyMessage(message, argString);
