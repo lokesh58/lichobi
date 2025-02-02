@@ -48,6 +48,9 @@ export class CommandManager {
       if (!interaction.isCommand()) {
         return;
       }
+      this.bot.logger.info(
+        `${interaction.user} used command: ${interaction.commandName}`,
+      );
       try {
         if (interaction.isChatInputCommand()) {
           await this.handleChatInputInteraction(interaction);
@@ -142,10 +145,12 @@ export class CommandManager {
       if (!message.content.startsWith(prefix)) {
         return;
       }
+      this.bot.logger.info(`${message.author} sent a legacy message command.`);
       try {
         const [commandName, argString] = this.extractCommandAndArgsFromMessage(
           message.content.substring(prefix.length),
         );
+        this.bot.logger.info("Inferred command name:", commandName);
         const command = this.commands.get(commandName);
         if (!command || !command.hasLegacyMessageMixin()) {
           throw new InvalidCommandError(commandName);
