@@ -1,7 +1,11 @@
 import { Bot } from "#lichobi/framework";
 import config from "#root/config.js";
-import { Events, GatewayIntentBits } from "discord.js";
-import InfoCommand from "./commands/info.js";
+import { GatewayIntentBits } from "discord.js";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const bot = new Bot({
   clientOptions: {
@@ -14,22 +18,11 @@ const bot = new Bot({
   loggerOptions: {
     minLogLevel: config.minLogLevel ?? "info",
   },
-});
-
-bot.client.once(Events.ClientReady, (readyClient) => {
-  bot.logger.info(`Ready! Logged in as ${readyClient.user.tag}`);
-});
-
-const commands = [new InfoCommand(bot as Bot<true>)];
-
-bot.client.on(Events.MessageCreate, (message) => {
-  for (const command of commands) {
-    if (message.content.toLowerCase() !== command.getBaseCommandData().name) {
-      continue;
-    }
-    command.handleLegacyMessage(message);
-    break;
-  }
+  commandManagerOptions: {
+    commandsFolder: join(__dirname, "commands"),
+    defaultPrefix: config.defaultPrefix || "!",
+    devGuildId: config.devGuildId || null,
+  },
 });
 
 bot.bootUp(config.discordBotToken);

@@ -29,7 +29,7 @@ export default class InfoCommand extends LichobiCommand(
 
   public async handleLegacyMessage(message: Message): Promise<void> {
     const infoMessage = await message.channel.send({
-      content: "Crunching latest info...",
+      content: "⏳ Crunching latest info...",
     });
     const infoEmbed = this.buildInfoEmbed({
       roundtripLatency: Math.round(
@@ -42,14 +42,14 @@ export default class InfoCommand extends LichobiCommand(
     });
   }
 
-  private buildInfoEmbed(data: EmbedBuildData) {
+  private buildInfoEmbed(data: EmbedBuildData): EmbedBuilder {
     const { client } = this.bot;
     return new EmbedBuilder()
       .setTitle(`${client.user.username}'s info`)
       .setDescription(
         [
-          `⌛ **Roundtrip Latency:** ${data.roundtripLatency}ms`,
-          `💓 **Websocket Heartbeat:** ${Math.round(client.ws.ping)}ms`,
+          `⏱️ **Roundtrip Latency:** ${data.roundtripLatency}ms`,
+          `📡 **Websocket Latency:** ${Math.round(client.ws.ping)}ms`,
         ].join("\n"),
       );
   }

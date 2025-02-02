@@ -1,65 +1,65 @@
 import chalk, { ChalkInstance } from "chalk";
 import { format } from "node:util";
 
-export const LOG_LEVELS = Object.freeze([
+export const LogLevels = Object.freeze([
   "debug",
   "info",
   "warn",
   "error",
 ] as const);
 
-type LogLevels = (typeof LOG_LEVELS)[number];
+type LogLevel = (typeof LogLevels)[number];
 
-const LOG_SEVERITY = {
+const LogSeverity = {
   debug: 10,
   info: 20,
   warn: 30,
   error: 40,
-} as const satisfies Record<LogLevels, number>;
+} as const satisfies Record<LogLevel, number>;
 
-type LogSeverity = (typeof LOG_SEVERITY)[LogLevels];
+type LogSeverity = (typeof LogSeverity)[LogLevel];
 
 export type LoggerOptions = {
-  minLogLevel?: LogLevels | number;
+  minLogLevel?: LogLevel | number;
 };
 
 export class Logger {
   public minLogSeverity: number;
 
-  private static readonly LOG_COLORS = Object.freeze({
-    [LOG_SEVERITY.debug]: chalk.gray,
-    [LOG_SEVERITY.info]: chalk.cyan,
-    [LOG_SEVERITY.warn]: chalk.yellow,
-    [LOG_SEVERITY.error]: chalk.red,
+  private static readonly LogColors = Object.freeze({
+    [LogSeverity.debug]: chalk.gray,
+    [LogSeverity.info]: chalk.cyan,
+    [LogSeverity.warn]: chalk.yellow,
+    [LogSeverity.error]: chalk.red,
   }) satisfies Record<LogSeverity, ChalkInstance>;
 
   constructor(options?: LoggerOptions) {
-    const { minLogLevel = LOG_SEVERITY.info } = options ?? {};
+    const { minLogLevel = LogSeverity.info } = options ?? {};
     this.minLogSeverity =
-      typeof minLogLevel === "string" ? LOG_SEVERITY[minLogLevel] : minLogLevel;
+      typeof minLogLevel === "string" ? LogSeverity[minLogLevel] : minLogLevel;
   }
 
   public error(...args: unknown[]): void {
-    this.writeLog(LOG_SEVERITY.error, ...args);
+    this.writeLog(LogSeverity.error, ...args);
   }
 
   public warn(...args: unknown[]): void {
-    this.writeLog(LOG_SEVERITY.warn, ...args);
+    this.writeLog(LogSeverity.warn, ...args);
   }
 
   public info(...args: unknown[]): void {
-    this.writeLog(LOG_SEVERITY.info, ...args);
+    this.writeLog(LogSeverity.info, ...args);
   }
 
   public debug(...args: unknown[]): void {
-    this.writeLog(LOG_SEVERITY.debug, ...args);
+    this.writeLog(LogSeverity.debug, ...args);
   }
 
   private writeLog(severity: LogSeverity, ...args: unknown[]): void {
     if (severity < this.minLogSeverity) {
       return;
     }
-    const logColor = Logger.LOG_COLORS[severity];
+    const logColor = Logger.LogColors[severity];
     const logPrefix = `${new Date().toISOString()} ${this.getCallerFile()}`;
     const formattedMessage = format(...args);
     console.log(logColor(logPrefix, formattedMessage));
