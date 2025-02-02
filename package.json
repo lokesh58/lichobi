@@ -6,7 +6,7 @@
   "main": "build/index.js",
   "scripts": {
     "build": "rm -rf build && tsc",
-    "start": "dotenvx run -f .env.production -- node build/index.js",
+    "start": "dotenvx run -f .env -- node build/index.js",
     "build:start": "pnpm run build && pnpm run start",
     "dev": "nodemon --watch src --watch .env --ext ts,json --exec 'dotenvx run -f .env -- tsx' src/index.ts",
     "lint": "eslint .",
