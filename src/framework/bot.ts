@@ -4,6 +4,7 @@ import {
   CommandManagerOptions,
 } from "./commandManager/index.js";
 import { Logger, LoggerOptions } from "./logger.js";
+import { LichobiError } from "./errors.js";
 
 export type BotOptions = {
   clientOptions: ClientOptions;
@@ -30,19 +31,26 @@ export class Bot<Ready extends boolean = boolean> {
   }
 
   public async bootUp(token: string): Promise<void> {
-    // Logging setup
     this.client.on(Events.Debug, (message) => this.logger.debug(message));
     this.client.on(Events.Warn, (message) => this.logger.warn(message));
     this.client.on(Events.Error, (error) => this.logger.error(error));
 
-    // Login
-    await this.client.login(token);
-
-    // Post login setup
-    this.client.once(Events.ClientReady, async (readyClient) => {
-      await this.commandManager.init();
-      this.commandManager.startCommandHandlers();
-      this.logger.info(`Ready! Logged in as ${readyClient.user.tag}`);
+    const clientReadyPromise = new Promise<void>((resolve) => {
+      this.client.once(Events.ClientReady, () => resolve());
     });
+    await Promise.all([
+      this.commandManager.loadCommands(),
+      this.client.login(token),
+      clientReadyPromise,
+    ]);
+
+    if (!this.isReady()) {
+      throw new LichobiError("Client failed to become ready!");
+    }
+
+    await this.commandManager.registerCommandsOnDiscord();
+    this.commandManager.startCommandHandlers();
+
+    this.logger.info(`Ready! Logged in as ${this.client.user.tag}`);
   }
 }

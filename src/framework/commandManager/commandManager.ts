@@ -39,8 +39,11 @@ export class CommandManager {
     if (options.devGuildId) this.devGuildId = options.devGuildId;
   }
 
-  public async init(): Promise<void> {
+  public async loadCommands(): Promise<void> {
     await this.commands.loadFromFolder(this.commandsFolder);
+  }
+
+  public async registerCommandsOnDiscord(): Promise<void> {
     await this.commands.registerApplicationCommandsOnDiscord(this.devGuildId);
   }
 
