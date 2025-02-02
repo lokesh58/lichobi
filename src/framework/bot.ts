@@ -17,6 +17,8 @@ export class Bot<Ready extends boolean = boolean> {
   public readonly logger: Logger;
   public readonly commandManager: CommandManager;
 
+  private ready: boolean = false;
+
   constructor(options: BotOptions) {
     this.client = new Client(options.clientOptions);
     this.logger = new Logger(options.loggerOptions);
@@ -27,7 +29,7 @@ export class Bot<Ready extends boolean = boolean> {
   }
 
   public isReady(): this is Bot<true> {
-    return this.client.isReady();
+    return this.ready;
   }
 
   public async bootUp(token: string): Promise<void> {
@@ -44,13 +46,14 @@ export class Bot<Ready extends boolean = boolean> {
       clientReadyPromise,
     ]);
 
-    if (!this.isReady()) {
+    if (!this.client.isReady()) {
       throw new LichobiError("Client failed to become ready!");
     }
 
     await this.commandManager.registerCommandsOnDiscord();
     this.commandManager.startCommandHandlers();
 
+    this.ready = true;
     this.logger.info(`Ready! Logged in as ${this.client.user.tag}`);
   }
 }
