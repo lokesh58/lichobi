@@ -5,6 +5,7 @@ import {
   InteractionReplyOptions,
   MessageContextMenuCommandInteraction,
   MessageFlags,
+  Snowflake,
   UserContextMenuCommandInteraction,
 } from "discord.js";
 import { Bot } from "../bot.js";
@@ -19,7 +20,8 @@ import { CommandRegistry } from "./commandRegistry.js";
 
 export type CommandManagerOptions = {
   commandsFolder: string;
-  defaultPrefix?: string;
+  defaultPrefix: string;
+  devGuildId?: Snowflake | null;
 };
 
 export class CommandManager {
@@ -27,16 +29,19 @@ export class CommandManager {
   private readonly commandsFolder: string;
   public readonly commands: CommandRegistry;
   private readonly defaultPrefix: string;
+  private readonly devGuildId?: Snowflake;
 
   constructor(bot: Bot<true>, options: CommandManagerOptions) {
     this.bot = bot;
     this.commands = new CommandRegistry(bot);
     this.commandsFolder = options.commandsFolder;
-    this.defaultPrefix = options.defaultPrefix || "!";
+    this.defaultPrefix = options.defaultPrefix;
+    if (options.devGuildId) this.devGuildId = options.devGuildId;
   }
 
   public async init(): Promise<void> {
     await this.commands.loadFromFolder(this.commandsFolder);
+    await this.commands.registerApplicationCommandsOnDiscord(this.devGuildId);
   }
 
   public startCommandHandlers(): void {

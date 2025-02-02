@@ -21,6 +21,7 @@ const bot = new Bot({
   commandManagerOptions: {
     commandsFolder: join(__dirname, "commands"),
     defaultPrefix: config.defaultPrefix || "!",
+    devGuildId: config.devGuildId || null,
   },
 });
 
