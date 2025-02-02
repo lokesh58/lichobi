@@ -64,6 +64,11 @@ export class CommandManager {
           await this.handleMessageContextMenuInteraction(interaction);
         } else if (interaction.isUserContextMenuCommand()) {
           await this.handleUserContextMenuInteraction(interaction);
+        } else {
+          interaction satisfies never;
+          throw new LichobiError(
+            `Unhandled command interaction type: ${interaction["type"]}.`,
+          );
         }
       } catch (error) {
         this.bot.logger.error(
