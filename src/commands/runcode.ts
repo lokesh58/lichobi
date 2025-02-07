@@ -11,11 +11,10 @@ import {
 export default class RuncodeCommand extends LichobiCommand(
   LichobiCommand.Base({
     name: "runcode",
-  }),
-  LichobiCommand.MessageContextMenuCommandMixin(),
-  LichobiCommand.LegacyMessageCommandMixin({
     description: "Run the code inside a code block!",
   }),
+  LichobiCommand.MessageContextMenuCommandMixin(),
+  LichobiCommand.LegacyMessageCommandMixin(),
 ) {
   public override async handleMessageContext(
     interaction: MessageContextMenuCommandInteraction,

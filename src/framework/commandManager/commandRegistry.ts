@@ -2,6 +2,7 @@ import { Bot, LichobiError } from "#lichobi/framework";
 import {
   ApplicationCommandDataResolvable,
   ApplicationCommandType,
+  ContextMenuCommandBuilder,
   Snowflake,
 } from "discord.js";
 import { readdirSync } from "fs";
@@ -195,23 +196,13 @@ export class CommandRegistry {
   ): Promise<void> {
     const commands: ApplicationCommandDataResolvable[] = [];
     for (const command of this.chatInputCommands.values()) {
-      commands.push({
-        type: ApplicationCommandType.ChatInput,
-        ...command.getBaseCommandData(),
-        ...command.getChatInputCommandData(),
-      });
+      commands.push(this.buildChatInputDiscordCommandData(command));
     }
     for (const command of this.messageContextMenuCommands.values()) {
-      commands.push({
-        type: ApplicationCommandType.Message,
-        ...command.getBaseCommandData(),
-      });
+      commands.push(this.buildMessageContextMenuDiscordCommandData(command));
     }
     for (const command of this.userContextMenuCommands.values()) {
-      commands.push({
-        type: ApplicationCommandType.User,
-        ...command.getBaseCommandData(),
-      });
+      commands.push(this.buildUserContextMenuDiscordCommandData(command));
     }
     this.bot.logger.debug("Starting to register commands on Discord");
     if (guildId) {
@@ -220,5 +211,44 @@ export class CommandRegistry {
       await this.bot.client.application.commands.set(commands);
     }
     this.bot.logger.info("Successfully registered commands on Discord");
+  }
+
+  private buildChatInputDiscordCommandData(
+    command: LichobiCommandTypeToClassMap["CHAT_INPUT"],
+  ): ApplicationCommandDataResolvable {
+    // const commandData = {
+    //   ...command.getBaseCommandData(),
+    //   ...command.getAdditionalChatInputCommandData(),
+    // };
+    // return new SlashCommandBuilder()
+    //   .setName(commandData.name)
+    //   .setDescription(commandData.description); // TODO: How to add options
+    return {
+      type: ApplicationCommandType.ChatInput,
+      ...command.getBaseCommandData(),
+      ...command.getAdditionalChatInputCommandData(),
+    };
+  }
+
+  private buildMessageContextMenuDiscordCommandData(
+    command: LichobiCommandTypeToClassMap["MESSAGE"],
+  ): ApplicationCommandDataResolvable {
+    const commandData = {
+      ...command.getBaseCommandData(),
+    };
+    return new ContextMenuCommandBuilder()
+      .setName(commandData.name)
+      .setType(ApplicationCommandType.Message);
+  }
+
+  private buildUserContextMenuDiscordCommandData(
+    command: LichobiCommandTypeToClassMap["USER"],
+  ): ApplicationCommandDataResolvable {
+    const commandData = {
+      ...command.getBaseCommandData(),
+    };
+    return new ContextMenuCommandBuilder()
+      .setName(commandData.name)
+      .setType(ApplicationCommandType.User);
   }
 }

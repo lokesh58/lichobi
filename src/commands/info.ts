@@ -14,13 +14,10 @@ type EmbedBuildData = {
 export default class InfoCommand extends LichobiCommand(
   LichobiCommand.Base({
     name: "info",
-  }),
-  LichobiCommand.ChatInputCommandMixin({
     description: "Get some info about me.",
   }),
-  LichobiCommand.LegacyMessageCommandMixin({
-    description: "Get some info about me.",
-  }),
+  LichobiCommand.ChatInputCommandMixin(),
+  LichobiCommand.LegacyMessageCommandMixin(),
 ) {
   public override async handleChatInput(
     interaction: ChatInputCommandInteraction,

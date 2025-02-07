@@ -15,7 +15,6 @@ import {
   ChannelType,
   ChatInputCommandInteraction,
   CommandInteractionOption,
-  LocalizationMap,
 } from "discord.js";
 import { Simplify } from "type-fest";
 import { LichobiError } from "../errors.js";
@@ -63,8 +62,6 @@ type ChatInputCommandOption =
   | ApplicationCommandAttachmentOption;
 
 type ChatInputCommandData = {
-  description: string;
-  descriptionLocalizations?: LocalizationMap;
   options?: readonly ChatInputCommandOption[];
 };
 
@@ -149,7 +146,7 @@ export abstract class BaseChatInputCommandMixin<
   Cached extends CacheType = CacheType,
   CommandData extends ChatInputCommandData = ChatInputCommandData,
 > {
-  public abstract getChatInputCommandData(): CommandData;
+  public abstract getAdditionalChatInputCommandData(): CommandData;
 
   protected extractChatInputOptionsData(
     interaction: ChatInputCommandInteraction<Cached>,
@@ -157,7 +154,7 @@ export abstract class BaseChatInputCommandMixin<
     ChatInputCommandExtractedOptions<ChatInputOptions<CommandData>, Cached>
   > {
     return Object.fromEntries(
-      this.getChatInputCommandData().options?.map((option) => [
+      this.getAdditionalChatInputCommandData().options?.map((option) => [
         option.name,
         this.extractChatInputOptionValue(interaction, option),
       ]) ?? [],
@@ -212,12 +209,12 @@ export abstract class BaseChatInputCommandMixin<
 export function ChatInputCommandMixin<
   Cached extends CacheType = CacheType,
   const CommandData extends ChatInputCommandData = ChatInputCommandData,
->(chatInputCommandData: CommandData) {
+>(chatInputCommandData?: CommandData) {
   abstract class ExtendedBaseChatInputCommandMixin extends BaseChatInputCommandMixin<
     Cached,
     CommandData
   > {
-    public getChatInputCommandData(): CommandData {
+    public getAdditionalChatInputCommandData(): CommandData {
       return chatInputCommandData || ({} as CommandData);
     }
   }
