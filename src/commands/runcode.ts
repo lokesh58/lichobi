@@ -17,7 +17,7 @@ export default class RuncodeCommand extends LichobiCommand(
     description: "Run the code inside a code block!",
   }),
 ) {
-  public async handleMessageContext(
+  public override async handleMessageContext(
     interaction: MessageContextMenuCommandInteraction,
   ): Promise<void> {
     await interaction.deferReply();
@@ -27,7 +27,7 @@ export default class RuncodeCommand extends LichobiCommand(
     await interaction.editReply({ embeds: [responseEmbed] });
   }
 
-  public async handleLegacyMessage(message: Message): Promise<void> {
+  public override async handleLegacyMessage(message: Message): Promise<void> {
     const responseEmbed = await this.generateResponseEmbed(message.content);
     await message.reply({ embeds: [responseEmbed] });
   }

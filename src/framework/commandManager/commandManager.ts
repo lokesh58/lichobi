@@ -1,5 +1,6 @@
 import {
   APIEmbed,
+  AutocompleteInteraction,
   ChatInputCommandInteraction,
   EmbedBuilder,
   Events,
@@ -56,14 +57,14 @@ export class CommandManager {
 
   private startInteractionCommandHandler(): void {
     this.bot.client.on(Events.InteractionCreate, async (interaction) => {
-      if (!interaction.isCommand()) {
+      if (!interaction.isCommand() && !interaction.isAutocomplete()) {
         return;
       }
       this.bot.logger.info(
-        `${interaction.user} used command: ${interaction.commandName}`,
+        `${interaction.user} used command: ${interaction.commandName} (autocomplete: ${interaction.isAutocomplete()})`,
       );
       try {
-        if (interaction.isChatInputCommand()) {
+        if (interaction.isChatInputCommand() || interaction.isAutocomplete()) {
           await this.handleChatInputInteraction(interaction);
         } else if (interaction.isMessageContextMenuCommand()) {
           await this.handleMessageContextMenuInteraction(interaction);
@@ -80,25 +81,27 @@ export class CommandManager {
           `Error in interaction command handler for interaction id: ${interaction.id}.`,
           error,
         );
-        const response: InteractionReplyOptions = {
-          embeds: [this.generateErrorEmbed(error)],
-          flags: MessageFlags.Ephemeral,
-        };
-        if (interaction.deferred || interaction.replied) {
-          await interaction
-            .followUp(response)
-            .catch((reason) => this.bot.logger.error(reason));
-        } else {
-          await interaction
-            .reply(response)
-            .catch((reason) => this.bot.logger.error(reason));
+        if (interaction.isCommand()) {
+          const response: InteractionReplyOptions = {
+            embeds: [this.generateErrorEmbed(error)],
+            flags: MessageFlags.Ephemeral,
+          };
+          if (interaction.deferred || interaction.replied) {
+            await interaction
+              .followUp(response)
+              .catch((reason) => this.bot.logger.error(reason));
+          } else {
+            await interaction
+              .reply(response)
+              .catch((reason) => this.bot.logger.error(reason));
+          }
         }
       }
     });
   }
 
   private async handleChatInputInteraction(
-    interaction: ChatInputCommandInteraction,
+    interaction: ChatInputCommandInteraction | AutocompleteInteraction,
   ): Promise<void> {
     const { commandId, commandName } = interaction;
     const command = this.commands.get(
@@ -112,7 +115,16 @@ export class CommandManager {
         LichobiCommandType.ChatInput,
       );
     }
-    await command.handleChatInput(interaction);
+    if (interaction.isChatInputCommand()) {
+      await command.handleChatInput(interaction);
+    } else {
+      if (!command.handleAutocomplete) {
+        throw new LichobiError(
+          `Autocomplete requested but not available in ${commandName} (${commandId})`,
+        );
+      }
+      await command.handleAutocomplete(interaction);
+    }
   }
 
   private async handleMessageContextMenuInteraction(

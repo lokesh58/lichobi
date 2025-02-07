@@ -78,43 +78,57 @@ type OptionTypeToValueType<
   Cached extends CacheType = CacheType,
 > = Option extends ApplicationCommandNumberOption
   ? ReturnType<ChatInputCommandInteraction<Cached>["options"]["getNumber"]>
-  : Option extends ApplicationCommandIntegerOption
-    ? ReturnType<ChatInputCommandInteraction<Cached>["options"]["getInteger"]>
-    : Option extends ApplicationCommandStringOption
-      ? ReturnType<ChatInputCommandInteraction<Cached>["options"]["getString"]>
-      : Option extends ApplicationCommandChannelOption
-        ? // Change to using ReturnType once there is a way to pass the generic type argument
-          Extract<
-            NonNullable<CommandInteractionOption<Cached>["channel"]>,
-            {
-              type: NonNullable<Option["channelTypes"]>[number] extends
-                | ChannelType.PublicThread
-                | ChannelType.AnnouncementThread
-                ? ChannelType.PublicThread | ChannelType.AnnouncementThread
-                : NonNullable<Option["channelTypes"]>[number];
-            }
-          > | null
-        : Option extends ApplicationCommandRoleOption
+  : Option extends ApplicationCommandAutocompleteNumberOption
+    ? ReturnType<ChatInputCommandInteraction<Cached>["options"]["getNumber"]>
+    : Option extends ApplicationCommandIntegerOption
+      ? ReturnType<ChatInputCommandInteraction<Cached>["options"]["getInteger"]>
+      : Option extends ApplicationCommandAutocompleteIntegerOption
+        ? ReturnType<
+            ChatInputCommandInteraction<Cached>["options"]["getInteger"]
+          >
+        : Option extends ApplicationCommandStringOption
           ? ReturnType<
-              ChatInputCommandInteraction<Cached>["options"]["getRole"]
+              ChatInputCommandInteraction<Cached>["options"]["getString"]
             >
-          : Option extends ApplicationCommandUserOption
+          : Option extends ApplicationCommandAutocompleteStringOption
             ? ReturnType<
-                ChatInputCommandInteraction<Cached>["options"]["getUser"]
+                ChatInputCommandInteraction<Cached>["options"]["getString"]
               >
-            : Option extends ApplicationCommandMentionableOption
-              ? ReturnType<
-                  ChatInputCommandInteraction<Cached>["options"]["getMentionable"]
-                >
-              : Option extends ApplicationCommandBooleanOption
+            : Option extends ApplicationCommandChannelOption
+              ? // Change to using ReturnType once there is a way to pass the generic type argument
+                Extract<
+                  NonNullable<CommandInteractionOption<Cached>["channel"]>,
+                  {
+                    type: NonNullable<Option["channelTypes"]>[number] extends
+                      | ChannelType.PublicThread
+                      | ChannelType.AnnouncementThread
+                      ?
+                          | ChannelType.PublicThread
+                          | ChannelType.AnnouncementThread
+                      : NonNullable<Option["channelTypes"]>[number];
+                  }
+                > | null
+              : Option extends ApplicationCommandRoleOption
                 ? ReturnType<
-                    ChatInputCommandInteraction<Cached>["options"]["getBoolean"]
+                    ChatInputCommandInteraction<Cached>["options"]["getRole"]
                   >
-                : Option extends ApplicationCommandAttachmentOption
+                : Option extends ApplicationCommandUserOption
                   ? ReturnType<
-                      ChatInputCommandInteraction<Cached>["options"]["getAttachment"]
+                      ChatInputCommandInteraction<Cached>["options"]["getUser"]
                     >
-                  : never;
+                  : Option extends ApplicationCommandMentionableOption
+                    ? ReturnType<
+                        ChatInputCommandInteraction<Cached>["options"]["getMentionable"]
+                      >
+                    : Option extends ApplicationCommandBooleanOption
+                      ? ReturnType<
+                          ChatInputCommandInteraction<Cached>["options"]["getBoolean"]
+                        >
+                      : Option extends ApplicationCommandAttachmentOption
+                        ? ReturnType<
+                            ChatInputCommandInteraction<Cached>["options"]["getAttachment"]
+                          >
+                        : never;
 
 type PossibleOptionValues = {
   [OptionType in ApplicationCommandOptionType]: OptionTypeToValueType<

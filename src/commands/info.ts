@@ -22,7 +22,7 @@ export default class InfoCommand extends LichobiCommand(
     description: "Get some info about me.",
   }),
 ) {
-  public async handleChatInput(
+  public override async handleChatInput(
     interaction: ChatInputCommandInteraction,
   ): Promise<void> {
     const infoMessage = await interaction.deferReply({ fetchReply: true });
@@ -36,7 +36,7 @@ export default class InfoCommand extends LichobiCommand(
     });
   }
 
-  public async handleLegacyMessage(message: Message): Promise<void> {
+  public override async handleLegacyMessage(message: Message): Promise<void> {
     const infoMessage = await message.channel.send({
       content: "⏳ Crunching latest info...",
     });
