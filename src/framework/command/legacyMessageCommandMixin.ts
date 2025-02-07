@@ -6,7 +6,7 @@ type LegacyMessageCommandOption = {
 };
 
 type LegacyMessageCommandData = {
-  description?: string;
+  description: string;
   expectedUsage?: string;
   options?: LegacyMessageCommandOption[];
 };
@@ -23,7 +23,7 @@ export abstract class BaseLegacyMessageCommandMixin<
 }
 
 export function LegacyMessageCommandMixin<InGuild extends boolean = boolean>(
-  legacyMessageCommandData?: LegacyMessageCommandData,
+  legacyMessageCommandData: LegacyMessageCommandData,
 ) {
   abstract class ExtendedBaseLegacyMessageCommandMixin extends BaseLegacyMessageCommandMixin<InGuild> {
     public getLegacyMessageCommandData(): LegacyMessageCommandData {

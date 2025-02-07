@@ -1,8 +1,10 @@
 import {
+  APIEmbed,
   ChatInputCommandInteraction,
   EmbedBuilder,
   Events,
   InteractionReplyOptions,
+  JSONEncodable,
   MessageContextMenuCommandInteraction,
   MessageFlags,
   Snowflake,
@@ -149,7 +151,7 @@ export class CommandManager {
     await command.handleUserContext(interaction);
   }
 
-  private generateErrorEmbed(rawError: unknown): EmbedBuilder {
+  private generateErrorEmbed(rawError: unknown): JSONEncodable<APIEmbed> {
     const error =
       rawError instanceof LichobiError
         ? rawError

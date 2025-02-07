@@ -63,7 +63,7 @@ type ChatInputCommandOption =
   | ApplicationCommandAttachmentOption;
 
 type ChatInputCommandData = {
-  description?: string;
+  description: string;
   descriptionLocalizations?: LocalizationMap;
   options?: readonly ChatInputCommandOption[];
 };
@@ -198,7 +198,7 @@ export abstract class BaseChatInputCommandMixin<
 export function ChatInputCommandMixin<
   Cached extends CacheType = CacheType,
   const CommandData extends ChatInputCommandData = ChatInputCommandData,
->(chatInputCommandData?: CommandData) {
+>(chatInputCommandData: CommandData) {
   abstract class ExtendedBaseChatInputCommandMixin extends BaseChatInputCommandMixin<
     Cached,
     CommandData

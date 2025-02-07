@@ -1,5 +1,9 @@
 import { Bot, LichobiError } from "#lichobi/framework";
-import { ApplicationCommandDataResolvable, Snowflake } from "discord.js";
+import {
+  ApplicationCommandDataResolvable,
+  ApplicationCommandType,
+  Snowflake,
+} from "discord.js";
 import { readdirSync } from "fs";
 import path from "path";
 import {
@@ -192,15 +196,22 @@ export class CommandRegistry {
     const commands: ApplicationCommandDataResolvable[] = [];
     for (const command of this.chatInputCommands.values()) {
       commands.push({
+        type: ApplicationCommandType.ChatInput,
         ...command.getBaseCommandData(),
         ...command.getChatInputCommandData(),
       });
     }
     for (const command of this.messageContextMenuCommands.values()) {
-      commands.push(command.getBaseCommandData());
+      commands.push({
+        type: ApplicationCommandType.Message,
+        ...command.getBaseCommandData(),
+      });
     }
     for (const command of this.userContextMenuCommands.values()) {
-      commands.push(command.getBaseCommandData());
+      commands.push({
+        type: ApplicationCommandType.User,
+        ...command.getBaseCommandData(),
+      });
     }
     this.bot.logger.debug("Starting to register commands on Discord");
     if (guildId) {

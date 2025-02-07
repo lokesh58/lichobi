@@ -1,4 +1,4 @@
-import { BaseApplicationCommandData, LocalizationMap } from "discord.js";
+import { BaseApplicationCommandData } from "discord.js";
 import { hasMixin } from "ts-mixer";
 import { Bot } from "../bot.js";
 import { BaseChatInputCommandMixin } from "./chatInputCommandMixin.js";
@@ -6,10 +6,7 @@ import { BaseLegacyMessageCommandMixin } from "./legacyMessageCommandMixin.js";
 import { BaseMessageContextMenuCommandMixin } from "./messageContextMenuCommandMixin.js";
 import { BaseUserContextMenuCommandMixin } from "./userContextMenuCommandMixin.js";
 
-type BaseCommandData = BaseApplicationCommandData & {
-  description: string;
-  descriptionLocalizations?: LocalizationMap;
-};
+type BaseCommandData = BaseApplicationCommandData;
 
 export abstract class BaseCommand {
   protected readonly bot: Bot<true>;
