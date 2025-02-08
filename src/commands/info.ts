@@ -1,11 +1,5 @@
 import { LichobiCommand } from "#lichobi/framework";
-import {
-  APIEmbed,
-  ChatInputCommandInteraction,
-  EmbedBuilder,
-  JSONEncodable,
-  Message,
-} from "discord.js";
+import { ChatInputCommandInteraction, EmbedBuilder, Message } from "discord.js";
 
 type EmbedBuildData = {
   roundtripLatency: number;
@@ -48,14 +42,13 @@ export default class InfoCommand extends LichobiCommand(
     });
   }
 
-  private buildInfoEmbed(data: EmbedBuildData): JSONEncodable<APIEmbed> {
-    const { client } = this.bot;
+  private buildInfoEmbed(data: EmbedBuildData): EmbedBuilder {
     return new EmbedBuilder()
-      .setTitle(`${client.user.username}'s info`)
+      .setTitle(`${this.bot.client.user.username}'s info`)
       .setDescription(
         [
           `⏱️ **Roundtrip Latency:** ${data.roundtripLatency}ms`,
-          `📡 **Websocket Latency:** ${Math.round(client.ws.ping)}ms`,
+          `📡 **Websocket Latency:** ${Math.round(this.bot.client.ws.ping)}ms`,
         ].join("\n"),
       );
   }
