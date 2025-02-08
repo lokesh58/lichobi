@@ -1,3 +1,4 @@
+import { Awaitable } from "discord.js";
 import { hasMixin } from "ts-mixer";
 import { Bot } from "../bot.js";
 import { BaseChatInputCommandMixin } from "./chatInputCommandMixin.js";
@@ -17,7 +18,7 @@ export abstract class BaseCommand {
     this.bot = bot;
   }
 
-  public setup?(): void | Promise<void> {}
+  public setup?(): Awaitable<void> {}
 
   public abstract getBaseCommandData(): BaseCommandData;
 

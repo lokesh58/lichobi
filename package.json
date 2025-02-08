@@ -23,8 +23,7 @@
   "license": "MIT",
   "imports": {
     "#lichobi/framework": "./build/framework/index.js",
-    "#root/*": "./build/*",
-    "#utils/*": "./build/utils/*"
+    "#root/*": "./build/*"
   },
   "devDependencies": {
     "@eslint/compat": "^1.1.1",

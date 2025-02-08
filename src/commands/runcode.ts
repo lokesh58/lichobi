@@ -1,6 +1,5 @@
-import { LichobiCommand } from "#lichobi/framework";
-import { CodeRunner } from "#utils/codeRunner.js";
-import { LocalCache } from "#utils/localCache.js";
+import { LichobiCommand, LichobiEvent } from "#lichobi/framework";
+import { CodeRunner, LocalCache } from "#root/utils/index.js";
 import {
   ActionRowBuilder,
   Colors,
@@ -11,10 +10,11 @@ import {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
-  codeBlock as codeBlockFormatter,
+  codeBlock,
+  italic,
 } from "discord.js";
 
-type CodeBlock = {
+type CodeExtract = {
   language: string;
   code: string;
 };
@@ -29,60 +29,66 @@ export default class RuncodeCommand extends LichobiCommand(
 ) {
   private static readonly ModalIdPrefix: string = "codeInput-";
   private static readonly InputId: string = "programInput";
-  private static readonly codeBlockCache = new LocalCache<CodeBlock>({
+  private static readonly codeExtractCache = new LocalCache<CodeExtract>({
     ttlSeconds: 300, // 5 minutes
     cleanupIntervalSeconds: 60, // 1 minute
   });
 
   public override setup(): void {
-    this.bot.client.on(Events.InteractionCreate, async (interaction) => {
-      if (!interaction.isModalSubmit()) return;
-      if (!interaction.customId.startsWith(RuncodeCommand.ModalIdPrefix))
-        return;
+    this.bot.eventManager.registerEvent(
+      LichobiEvent({
+        name: "runcode-input-modal-submit",
+        event: Events.InteractionCreate,
+        handler: async (interaction) => {
+          if (!interaction.isModalSubmit()) return;
+          if (!interaction.customId.startsWith(RuncodeCommand.ModalIdPrefix))
+            return;
 
-      const originalCommandInteractionId = interaction.customId.substring(
-        RuncodeCommand.ModalIdPrefix.length,
-      );
-      const codeBlock = RuncodeCommand.codeBlockCache.get(
-        originalCommandInteractionId,
-      );
-      if (!codeBlock) {
-        await interaction.reply({
-          embeds: [RuncodeCommand.getExpiredCodeBlockEmbed()],
-          ephemeral: true,
-        });
-        return;
-      }
-      // Clean up cache as a modal interaction will only need to be handled once
-      RuncodeCommand.codeBlockCache.delete(originalCommandInteractionId);
+          const originalCommandInteractionId = interaction.customId.substring(
+            RuncodeCommand.ModalIdPrefix.length,
+          );
+          const codeExtract = RuncodeCommand.codeExtractCache.get(
+            originalCommandInteractionId,
+          );
+          if (!codeExtract) {
+            await interaction.reply({
+              embeds: [RuncodeCommand.getExpiredCodeExtractEmbed()],
+              ephemeral: true,
+            });
+            return;
+          }
+          // Clean up cache as a modal interaction will only need to be handled once
+          RuncodeCommand.codeExtractCache.delete(originalCommandInteractionId);
 
-      await interaction.deferReply();
-      const input = interaction.fields.getTextInputValue(
-        RuncodeCommand.InputId,
-      );
-      const responseEmbed = await RuncodeCommand.generateResponseEmbed(
-        codeBlock,
-        input,
-      );
-      await interaction.editReply({ embeds: [responseEmbed] });
-    });
+          await interaction.deferReply();
+          const input = interaction.fields.getTextInputValue(
+            RuncodeCommand.InputId,
+          );
+          const responseEmbed = await RuncodeCommand.generateResponseEmbed(
+            codeExtract,
+            input,
+          );
+          await interaction.editReply({ embeds: [responseEmbed] });
+        },
+      }),
+    );
   }
 
   public override async handleMessageContext(
     interaction: MessageContextMenuCommandInteraction,
   ): Promise<void> {
-    const codeBlock = RuncodeCommand.extractCodeBlock(
+    const codeExtract = RuncodeCommand.extractCode(
       interaction.targetMessage.content,
     );
-    if (!codeBlock) {
+    if (!codeExtract) {
       await interaction.reply({
-        embeds: [RuncodeCommand.getInvalidCodeBlockEmbed()],
+        embeds: [RuncodeCommand.getInvalidCodeExtractEmbed()],
         ephemeral: true,
       });
       return;
     }
 
-    RuncodeCommand.codeBlockCache.set(interaction.id, codeBlock);
+    RuncodeCommand.codeExtractCache.set(interaction.id, codeExtract);
     const modal = RuncodeCommand.createInputModal(interaction.id);
     await interaction.showModal(modal);
   }
@@ -106,18 +112,19 @@ export default class RuncodeCommand extends LichobiCommand(
   }
 
   public override async handleLegacyMessage(message: Message): Promise<void> {
-    const codeBlock = RuncodeCommand.extractCodeBlock(message.content);
-    if (!codeBlock) {
+    const codeExtract = RuncodeCommand.extractCode(message.content);
+    if (!codeExtract) {
       await message.reply({
-        embeds: [RuncodeCommand.getInvalidCodeBlockEmbed()],
+        embeds: [RuncodeCommand.getInvalidCodeExtractEmbed()],
       });
       return;
     }
-    const responseEmbed = await RuncodeCommand.generateResponseEmbed(codeBlock);
+    const responseEmbed =
+      await RuncodeCommand.generateResponseEmbed(codeExtract);
     await message.reply({ embeds: [responseEmbed] });
   }
 
-  private static extractCodeBlock(messageContent: string): CodeBlock | null {
+  private static extractCode(messageContent: string): CodeExtract | null {
     const [res] = messageContent.matchAll(
       /(?<!\\)(```)(?<=```)(?:([a-z][a-z0-9]*)\s)(.*?)(?<!\\)(?=```)((?:\\\\)*```)/gs,
     );
@@ -128,14 +135,14 @@ export default class RuncodeCommand extends LichobiCommand(
     };
   }
 
-  private static getInvalidCodeBlockEmbed(): EmbedBuilder {
+  private static getInvalidCodeExtractEmbed(): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle("Invalid code block!")
       .setDescription("The message does not contain a valid code block.")
       .setColor(Colors.Red);
   }
 
-  private static getExpiredCodeBlockEmbed(): EmbedBuilder {
+  private static getExpiredCodeExtractEmbed(): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle("Code block expired!")
       .setDescription(
@@ -145,13 +152,13 @@ export default class RuncodeCommand extends LichobiCommand(
   }
 
   private static async generateResponseEmbed(
-    codeBlock: CodeBlock,
+    codeExtract: CodeExtract,
     input?: string,
   ): Promise<EmbedBuilder> {
     const codeRunner = CodeRunner.getInstance();
     const { output, error } = await codeRunner.runCode({
-      language: codeBlock.language,
-      code: codeBlock.code,
+      language: codeExtract.language,
+      code: codeExtract.code,
       input: input || "",
     });
     const embedColor = !error ? Colors.Green : Colors.Yellow;
@@ -161,27 +168,27 @@ export default class RuncodeCommand extends LichobiCommand(
         {
           name: "Code",
           value: RuncodeCommand.formatTextForEmbed(
-            codeBlock.code,
-            codeBlock.language,
+            codeExtract.code,
+            codeExtract.language,
           ),
         },
         {
           name: "Input",
           value: input
             ? RuncodeCommand.formatTextForEmbed(input)
-            : "*No input provided*",
+            : italic("No input provided"),
         },
         {
           name: "Output",
           value: output
             ? RuncodeCommand.formatTextForEmbed(output)
-            : "*No output generated*",
+            : italic("No output generated"),
         },
         {
           name: "Error",
           value: error
             ? RuncodeCommand.formatTextForEmbed(error)
-            : "*No errors occurred*",
+            : italic("No errors occurred"),
         },
       )
       .setColor(embedColor);
@@ -195,8 +202,6 @@ export default class RuncodeCommand extends LichobiCommand(
       text.length <= maxContentLength
         ? text
         : text.slice(0, maxContentLength) + "\n... (truncated)";
-    return language
-      ? codeBlockFormatter(language, displayText)
-      : codeBlockFormatter(displayText);
+    return language ? codeBlock(language, displayText) : codeBlock(displayText);
   }
 }

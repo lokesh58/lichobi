@@ -1,12 +1,8 @@
 import {
   AutocompleteInteraction,
   ChatInputCommandInteraction,
-  Colors,
-  EmbedBuilder,
   Events,
-  InteractionReplyOptions,
   MessageContextMenuCommandInteraction,
-  MessageFlags,
   Snowflake,
   UserContextMenuCommandInteraction,
 } from "discord.js";
@@ -15,9 +11,10 @@ import { LichobiCommandType } from "../command/index.js";
 import {
   InvalidCommandError,
   LichobiError,
-  UnexpectedError,
   UnknownCommandError,
 } from "../errors.js";
+import { LichobiEvent } from "../event/index.js";
+import { ErrorUtility } from "../utils/index.js";
 import { CommandRegistry } from "./commandRegistry.js";
 
 export type CommandManagerOptions = {
@@ -55,48 +52,35 @@ export class CommandManager {
   }
 
   private startInteractionCommandHandler(): void {
-    this.bot.client.on(Events.InteractionCreate, async (interaction) => {
-      if (!interaction.isCommand() && !interaction.isAutocomplete()) {
-        return;
-      }
-      this.bot.logger.info(
-        `${interaction.user} used command: ${interaction.commandName} (autocomplete: ${interaction.isAutocomplete()})`,
-      );
-      try {
-        if (interaction.isChatInputCommand() || interaction.isAutocomplete()) {
-          await this.handleChatInputInteraction(interaction);
-        } else if (interaction.isMessageContextMenuCommand()) {
-          await this.handleMessageContextMenuInteraction(interaction);
-        } else if (interaction.isUserContextMenuCommand()) {
-          await this.handleUserContextMenuInteraction(interaction);
-        } else {
-          interaction satisfies never;
-          throw new LichobiError(
-            `Unhandled command interaction type: ${interaction["type"]}.`,
-          );
-        }
-      } catch (error) {
-        this.bot.logger.error(
-          `Error in interaction command handler for interaction id: ${interaction.id}.`,
-          error,
-        );
-        if (interaction.isCommand()) {
-          const response: InteractionReplyOptions = {
-            embeds: [this.generateErrorEmbed(error)],
-            flags: MessageFlags.Ephemeral,
-          };
-          if (interaction.deferred || interaction.replied) {
-            await interaction
-              .followUp(response)
-              .catch((reason) => this.bot.logger.error(reason));
-          } else {
-            await interaction
-              .reply(response)
-              .catch((reason) => this.bot.logger.error(reason));
+    this.bot.eventManager.registerEvent(
+      LichobiEvent({
+        name: "interaction-command-handler",
+        event: Events.InteractionCreate,
+        handler: async (interaction) => {
+          if (!interaction.isCommand() && !interaction.isAutocomplete()) {
+            return;
           }
-        }
-      }
-    });
+          this.bot.logger.info(
+            `${interaction.user} used command: ${interaction.commandName} (autocomplete: ${interaction.isAutocomplete()})`,
+          );
+          if (
+            interaction.isChatInputCommand() ||
+            interaction.isAutocomplete()
+          ) {
+            await this.handleChatInputInteraction(interaction);
+          } else if (interaction.isMessageContextMenuCommand()) {
+            await this.handleMessageContextMenuInteraction(interaction);
+          } else if (interaction.isUserContextMenuCommand()) {
+            await this.handleUserContextMenuInteraction(interaction);
+          } else {
+            interaction satisfies never;
+            throw new LichobiError(
+              `Unhandled command interaction type: ${interaction["type"]}.`,
+            );
+          }
+        },
+      }),
+    );
   }
 
   private async handleChatInputInteraction(
@@ -162,49 +146,49 @@ export class CommandManager {
     await command.handleUserContext(interaction);
   }
 
-  private generateErrorEmbed(rawError: unknown): EmbedBuilder {
-    const error =
-      rawError instanceof LichobiError
-        ? rawError
-        : new UnexpectedError(rawError);
-    return new EmbedBuilder()
-      .setDescription(error.displayMessage())
-      .setColor(Colors.Red);
-  }
-
   private startLegacyMessageCommandHandler(): void {
-    this.bot.client.on(Events.MessageCreate, async (message) => {
-      if (message.author.bot) {
-        return;
-      }
-      const prefix = await this.getLegacyMessagePrefix();
-      if (!message.content.startsWith(prefix)) {
-        return;
-      }
-      this.bot.logger.info(`${message.author} sent a legacy message command.`);
-      try {
-        const [commandName, argString] = this.extractCommandAndArgsFromMessage(
-          message.content.substring(prefix.length),
-        );
-        this.bot.logger.info("Inferred command name:", commandName);
-        const command = this.commands.get(
-          commandName,
-          LichobiCommandType.LegacyMessage,
-        );
-        if (!command) {
-          throw new InvalidCommandError(commandName);
-        }
-        await command.handleLegacyMessage(message, argString);
-      } catch (error) {
-        this.bot.logger.error(
-          `Error in legacy message command handler for message id: ${message.id}.`,
-          error,
-        );
-        await message.reply({
-          embeds: [this.generateErrorEmbed(error)],
-        });
-      }
-    });
+    this.bot.eventManager.registerEvent(
+      LichobiEvent({
+        name: "legacy-message-command-handler",
+        event: Events.MessageCreate,
+        handler: async (message) => {
+          if (message.author.bot) {
+            return;
+          }
+          const prefix = await this.getLegacyMessagePrefix();
+          if (!message.content.startsWith(prefix)) {
+            return;
+          }
+          this.bot.logger.info(
+            `${message.author} sent a legacy message command.`,
+          );
+          const [commandName, argString] =
+            this.extractCommandAndArgsFromMessage(
+              message.content.substring(prefix.length),
+            );
+          this.bot.logger.info("Inferred command name:", commandName);
+          const command = this.commands.get(
+            commandName,
+            LichobiCommandType.LegacyMessage,
+          );
+          if (!command) {
+            throw new InvalidCommandError(commandName);
+          }
+          await command.handleLegacyMessage(message, argString);
+        },
+        customErrorHandler: async (error, [message]) => {
+          this.bot.logger.error(
+            `Error in legacy message command handler for message id: ${message.id}.`,
+            error,
+          );
+          await message
+            .reply({
+              embeds: [ErrorUtility.generateErrorEmbed(error)],
+            })
+            .catch((reason) => this.bot.logger.error(reason));
+        },
+      }),
+    );
   }
 
   private async getLegacyMessagePrefix(): Promise<string> {
