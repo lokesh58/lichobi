@@ -1,4 +1,9 @@
-import { LichobiCommand, LichobiEvent } from "#lichobi/framework";
+import {
+  LichobiCommand,
+  LichobiEvent,
+  UserDisplayableError,
+  UserError,
+} from "#lichobi/framework";
 import { CodeRunner, LocalCache } from "#root/utils/index.js";
 import {
   ActionRowBuilder,
@@ -19,7 +24,13 @@ type CodeExtract = {
   code: string;
 };
 
-export default class RuncodeCommand extends LichobiCommand(
+class NoCodeBlockError extends UserError {
+  constructor() {
+    super("The message does not contain a valid code block");
+  }
+}
+
+export class RuncodeCommand extends LichobiCommand(
   LichobiCommand.Base({
     name: "runcode",
     description: "Run the code inside a code block!",
@@ -51,13 +62,11 @@ export default class RuncodeCommand extends LichobiCommand(
             originalCommandInteractionId,
           );
           if (!codeExtract) {
-            await interaction.reply({
-              embeds: [RuncodeCommand.getExpiredCodeExtractEmbed()],
-              ephemeral: true,
-            });
-            return;
+            throw new UserDisplayableError(
+              "The command has expired. Please try running the command again.",
+            );
           }
-          // Clean up cache as a modal interaction will only need to be handled once
+          // Clean up cache as a modal submit can only happen once
           RuncodeCommand.codeExtractCache.delete(originalCommandInteractionId);
 
           await interaction.deferReply();
@@ -81,11 +90,7 @@ export default class RuncodeCommand extends LichobiCommand(
       interaction.targetMessage.content,
     );
     if (!codeExtract) {
-      await interaction.reply({
-        embeds: [RuncodeCommand.getInvalidCodeExtractEmbed()],
-        ephemeral: true,
-      });
-      return;
+      throw new NoCodeBlockError();
     }
 
     RuncodeCommand.codeExtractCache.set(interaction.id, codeExtract);
@@ -114,10 +119,7 @@ export default class RuncodeCommand extends LichobiCommand(
   public override async handleLegacyMessage(message: Message): Promise<void> {
     const codeExtract = RuncodeCommand.extractCode(message.content);
     if (!codeExtract) {
-      await message.reply({
-        embeds: [RuncodeCommand.getInvalidCodeExtractEmbed()],
-      });
-      return;
+      throw new NoCodeBlockError();
     }
     const responseEmbed =
       await RuncodeCommand.generateResponseEmbed(codeExtract);
@@ -133,22 +135,6 @@ export default class RuncodeCommand extends LichobiCommand(
       language: res[2],
       code: res[3],
     };
-  }
-
-  private static getInvalidCodeExtractEmbed(): EmbedBuilder {
-    return new EmbedBuilder()
-      .setTitle("Invalid code block!")
-      .setDescription("The message does not contain a valid code block.")
-      .setColor(Colors.Red);
-  }
-
-  private static getExpiredCodeExtractEmbed(): EmbedBuilder {
-    return new EmbedBuilder()
-      .setTitle("Code block expired!")
-      .setDescription(
-        "The code block has expired. Please try running the command again.",
-      )
-      .setColor(Colors.Red);
   }
 
   private static async generateResponseEmbed(

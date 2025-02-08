@@ -18,15 +18,28 @@ export class UnknownCommandError extends LichobiError {
   }
 }
 
-export class InvalidCommandError extends LichobiError {
-  private commandName: string;
-
-  constructor(commandName: string) {
-    super(`Invalid command used: ${commandName}`);
-    this.commandName = commandName;
+export class UserError extends LichobiError {
+  constructor(message: string) {
+    super(message);
   }
 
   public override displayMessage(): string {
-    return `❌ Invalid command: \`${this.commandName}\``;
+    return `❌ ${this.message}`;
+  }
+}
+
+export class InvalidCommandError extends UserError {
+  constructor(commandName: string) {
+    super(`Invalid command: ${commandName}`);
+  }
+}
+
+export class UserDisplayableError extends LichobiError {
+  constructor(message: string) {
+    super(message);
+  }
+
+  public override displayMessage(): string {
+    return `⚠️ ${this.message}`;
   }
 }

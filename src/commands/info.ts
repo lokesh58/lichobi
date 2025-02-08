@@ -5,7 +5,7 @@ type EmbedBuildData = {
   roundtripLatency: number;
 };
 
-export default class InfoCommand extends LichobiCommand(
+export class InfoCommand extends LichobiCommand(
   LichobiCommand.Base({
     name: "info",
     description: "Get some info about me.",
