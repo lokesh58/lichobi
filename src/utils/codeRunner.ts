@@ -1,6 +1,11 @@
 import { LichobiError } from "#lichobi/framework";
 import config from "#root/config.js";
 
+export type CodeRunnerLanguageDetails = {
+  language: string;
+  display: string;
+};
+
 export type CodeRunnerParams = {
   language: string;
   code: string;
@@ -31,6 +36,23 @@ export class CodeRunner {
       );
     }
     return this._instance;
+  }
+
+  public async getSupportedLanguages(): Promise<CodeRunnerLanguageDetails[]> {
+    const response = await fetch(`${this.baseURL}/api/list`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+      },
+    });
+    if (!response.ok) {
+      const errorMessage = await response.text();
+      throw new LichobiError(
+        `Failed to retrieve supported languages! Status ${response.status}: ${errorMessage}`,
+      );
+    }
+
+    return await response.json();
   }
 
   public async runCode(params: CodeRunnerParams): Promise<CodeRunnerResult> {

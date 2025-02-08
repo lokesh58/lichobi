@@ -16,6 +16,7 @@ import {
   TextInputBuilder,
   TextInputStyle,
   codeBlock,
+  inlineCode,
   italic,
 } from "discord.js";
 
@@ -23,12 +24,6 @@ type CodeExtract = {
   language: string;
   code: string;
 };
-
-class NoCodeBlockError extends UserInputError {
-  constructor() {
-    super("The message does not contain a valid code block");
-  }
-}
 
 export class RuncodeCommand extends LichobiCommand(
   LichobiCommand.Base({
@@ -86,13 +81,10 @@ export class RuncodeCommand extends LichobiCommand(
   public override async handleMessageContext(
     interaction: MessageContextMenuCommandInteraction,
   ): Promise<void> {
-    const codeExtract = RuncodeCommand.extractCode(
+    await interaction.deferReply();
+    const codeExtract = await RuncodeCommand.extractCode(
       interaction.targetMessage.content,
     );
-    if (!codeExtract) {
-      throw new NoCodeBlockError();
-    }
-
     RuncodeCommand.codeExtractCache.set(interaction.id, codeExtract);
     const modal = RuncodeCommand.createInputModal(interaction.id);
     await interaction.showModal(modal);
@@ -117,20 +109,35 @@ export class RuncodeCommand extends LichobiCommand(
   }
 
   public override async handleLegacyMessage(message: Message): Promise<void> {
-    const codeExtract = RuncodeCommand.extractCode(message.content);
-    if (!codeExtract) {
-      throw new NoCodeBlockError();
-    }
+    const codeExtract = await RuncodeCommand.extractCode(message.content);
     const responseEmbed =
       await RuncodeCommand.generateResponseEmbed(codeExtract);
     await message.reply({ embeds: [responseEmbed] });
   }
 
-  private static extractCode(messageContent: string): CodeExtract | null {
+  private static async extractCode(
+    messageContent: string,
+  ): Promise<CodeExtract> {
     const [res] = messageContent.matchAll(
       /(?<!\\)(```)(?<=```)(?:([a-z][a-z0-9]*)\s)(.*?)(?<!\\)(?=```)((?:\\\\)*```)/gs,
     );
-    if (!res || !res[2] || !res[3]) return null;
+    if (!res || !res[2] || !res[3]) {
+      throw new UserInputError(
+        "The message does not contain a valid code block",
+      );
+    }
+    const supportedLanguages =
+      await CodeRunner.getInstance().getSupportedLanguages();
+    if (!supportedLanguages.map((l) => l.language).includes(res[2])) {
+      throw new UserDisplayableError(
+        [
+          `Language ${inlineCode(res[2])} is not supported. Supported languages are:`,
+          ...supportedLanguages.map(
+            (l) => `• ${l.display} (${inlineCode(l.language)})`,
+          ),
+        ].join("\n"),
+      );
+    }
     return {
       language: res[2],
       code: res[3],
@@ -141,8 +148,7 @@ export class RuncodeCommand extends LichobiCommand(
     codeExtract: CodeExtract,
     input?: string,
   ): Promise<EmbedBuilder> {
-    const codeRunner = CodeRunner.getInstance();
-    const { output, error } = await codeRunner.runCode({
+    const { output, error } = await CodeRunner.getInstance().runCode({
       language: codeExtract.language,
       code: codeExtract.code,
       input: input || "",
