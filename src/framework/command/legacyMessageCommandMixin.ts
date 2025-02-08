@@ -1,13 +1,18 @@
 import { Message } from "discord.js";
 
-type LegacyMessageCommandOption = {
-  name: string;
+type LegacyMessageCommandArgsUsageExample = {
+  sampleArgs: string;
   description: string;
 };
 
+type LegacyMessageCommandArgsUsage = {
+  expectedArgs: string;
+  description: string;
+  examples?: LegacyMessageCommandArgsUsageExample[];
+};
+
 type LegacyMessageCommandData = {
-  expectedUsage?: string;
-  options?: LegacyMessageCommandOption[];
+  argsUsage?: LegacyMessageCommandArgsUsage;
 };
 
 export abstract class BaseLegacyMessageCommandMixin<
