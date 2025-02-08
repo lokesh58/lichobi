@@ -16,7 +16,8 @@ export class InfoCommand extends LichobiCommand(
   public override async handleChatInput(
     interaction: ChatInputCommandInteraction,
   ): Promise<void> {
-    const infoMessage = await interaction.deferReply({ fetchReply: true });
+    await interaction.deferReply();
+    const infoMessage = await interaction.fetchReply();
     const infoEmbed = this.buildInfoEmbed({
       roundtripLatency: Math.round(
         infoMessage.createdTimestamp - interaction.createdTimestamp,
@@ -28,7 +29,7 @@ export class InfoCommand extends LichobiCommand(
   }
 
   public override async handleLegacyMessage(message: Message): Promise<void> {
-    const infoMessage = await message.channel.send({
+    const infoMessage = await message.reply({
       content: "⏳ Crunching latest info...",
     });
     const infoEmbed = this.buildInfoEmbed({

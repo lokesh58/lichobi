@@ -15,8 +15,8 @@
     "format:fix": "prettier . --fix"
   },
   "engines": {
-    "node": ">=20.11.0",
-    "pnpm": ">=8.15.4"
+    "node": "^20.11.0",
+    "pnpm": "^10.2.1"
   },
   "keywords": [],
   "author": "lokesh58",
@@ -26,24 +26,24 @@
     "#root/*": "./build/*"
   },
   "devDependencies": {
-    "@eslint/compat": "^1.1.1",
-    "@eslint/js": "^9.9.0",
-    "@types/node": "^22.2.0",
-    "eslint": "9.x",
+    "@eslint/compat": "^1.2.6",
+    "@eslint/js": "^9.20.0",
+    "@types/node": "^22.13.1",
+    "eslint": "~9.20.0",
     "eslint-config-prettier": "^9.1.0",
-    "globals": "^15.9.0",
-    "nodemon": "^3.1.7",
+    "globals": "^15.14.0",
+    "nodemon": "^3.1.9",
     "prettier": "3.3.3",
     "tsx": "^4.19.2",
-    "type-fest": "^4.27.1",
-    "typescript": "^5.5.4",
-    "typescript-eslint": "^8.0.1"
+    "type-fest": "^4.33.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.23.0"
   },
   "dependencies": {
-    "@dotenvx/dotenvx": "^1.22.0",
-    "chalk": "^5.3.0",
-    "discord.js": "^14.15.3",
+    "@dotenvx/dotenvx": "^1.35.0",
+    "chalk": "^5.4.1",
+    "discord.js": "^14.17.3",
     "ts-mixer": "^6.0.4",
-    "zod": "^3.23.8"
+    "zod": "^3.24.1"
   }
 }
