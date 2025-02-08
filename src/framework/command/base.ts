@@ -17,6 +17,8 @@ export abstract class BaseCommand {
     this.bot = bot;
   }
 
+  public setup?(): void | Promise<void> {}
+
   public abstract getBaseCommandData(): BaseCommandData;
 
   public hasChatInputMixin(): this is BaseChatInputCommandMixin {

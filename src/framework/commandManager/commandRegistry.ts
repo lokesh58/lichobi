@@ -42,7 +42,7 @@ export class CommandRegistry {
     this.bot = bot;
   }
 
-  public register(command: BaseCommand): void {
+  public async register(command: BaseCommand): Promise<void> {
     if (command.hasChatInputMixin()) {
       this.registerCommandOfType(LichobiCommandType.ChatInput, command);
     }
@@ -58,6 +58,7 @@ export class CommandRegistry {
     if (command.hasUserContextMenuMixin()) {
       this.registerCommandOfType(LichobiCommandType.UserContextMenu, command);
     }
+    await command.setup?.();
   }
 
   private registerCommandOfType<T extends LichobiCommandType>(
@@ -134,7 +135,7 @@ export class CommandRegistry {
           CommandRegistry.ValidExtensions.includes(path.extname(item.name))
         ) {
           const commands = await this.importCommand(fullPath);
-          commands.forEach((command) => this.register(command));
+          await Promise.all(commands.map((command) => this.register(command)));
         }
       }),
     );

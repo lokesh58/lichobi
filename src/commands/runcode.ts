@@ -3,6 +3,7 @@ import { CodeRunner } from "#root/utils/codeRunner.js";
 import {
   ActionRowBuilder,
   EmbedBuilder,
+  Events,
   Message,
   MessageContextMenuCommandInteraction,
   ModalBuilder,
@@ -23,7 +24,37 @@ export default class RuncodeCommand extends LichobiCommand(
   LichobiCommand.MessageContextMenuCommandMixin(),
   LichobiCommand.LegacyMessageCommandMixin(),
 ) {
-  private static readonly InputElementId: string = "programInput";
+  private static readonly ModalIdPrefix: string = "codeInput-";
+  private static readonly InputId: string = "programInput";
+
+  public override setup(): void {
+    this.bot.client.on(Events.InteractionCreate, async (interaction) => {
+      if (!interaction.isModalSubmit()) return;
+
+      if (!interaction.customId.startsWith(RuncodeCommand.ModalIdPrefix))
+        return;
+
+      await interaction.deferReply();
+      const input = interaction.fields.getTextInputValue(
+        RuncodeCommand.InputId,
+      );
+
+      const messageId = interaction.customId.substring(
+        RuncodeCommand.ModalIdPrefix.length,
+      );
+      const message = await interaction.channel?.messages.fetch(messageId);
+      if (!message) return;
+
+      const codeBlock = RuncodeCommand.extractCodeBlock(message.content);
+      if (!codeBlock) return;
+
+      const responseEmbed = await RuncodeCommand.generateResponseEmbed(
+        codeBlock,
+        input,
+      );
+      await interaction.editReply({ embeds: [responseEmbed] });
+    });
+  }
 
   public override async handleMessageContext(
     interaction: MessageContextMenuCommandInteraction,
@@ -39,30 +70,9 @@ export default class RuncodeCommand extends LichobiCommand(
       return;
     }
 
-    const modalCustomId = `codeInput-${interaction.id}`;
+    const modalCustomId = `${RuncodeCommand.ModalIdPrefix}${interaction.targetMessage.id}`;
     const modal = RuncodeCommand.createInputModal(modalCustomId);
     await interaction.showModal(modal);
-
-    const modalResponse = await interaction
-      .awaitModalSubmit({
-        time: 120_000,
-        filter: (i) => i.customId === modalCustomId,
-      })
-      .catch((reason) => this.bot.logger.error(reason));
-
-    if (!modalResponse) {
-      return;
-    }
-
-    await modalResponse.deferReply();
-    const input = modalResponse.fields.getTextInputValue(
-      RuncodeCommand.InputElementId,
-    );
-    const responseEmbed = await RuncodeCommand.generateResponseEmbed(
-      codeBlock,
-      input,
-    );
-    await modalResponse.editReply({ embeds: [responseEmbed] });
   }
 
   private static createInputModal(modalCustomId: string): ModalBuilder {
@@ -71,7 +81,7 @@ export default class RuncodeCommand extends LichobiCommand(
       .setTitle("Program Input");
 
     const inputField = new TextInputBuilder()
-      .setCustomId(RuncodeCommand.InputElementId)
+      .setCustomId(RuncodeCommand.InputId)
       .setLabel("Enter input for the program (optional)")
       .setStyle(TextInputStyle.Paragraph)
       .setRequired(false);
