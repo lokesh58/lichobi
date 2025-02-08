@@ -1,20 +1,24 @@
 import { Message } from "discord.js";
 
-type LegacyMessageCommandOption = {
-  name: string;
+type LegacyMessageCommandArgsUsageExample = {
+  sampleArgs: string;
   description: string;
 };
 
+type LegacyMessageCommandArgsUsage = {
+  expectedArgs: string;
+  description: string;
+  examples?: LegacyMessageCommandArgsUsageExample[];
+};
+
 type LegacyMessageCommandData = {
-  description?: string;
-  expectedUsage?: string;
-  options?: LegacyMessageCommandOption[];
+  argsUsage?: LegacyMessageCommandArgsUsage;
 };
 
 export abstract class BaseLegacyMessageCommandMixin<
   InGuild extends boolean = boolean,
 > {
-  public abstract getLegacyMessageCommandData(): LegacyMessageCommandData;
+  public abstract getAdditionalLegacyMessageCommandData(): LegacyMessageCommandData;
 
   public abstract handleLegacyMessage(
     message: Message<InGuild>,
@@ -26,7 +30,7 @@ export function LegacyMessageCommandMixin<InGuild extends boolean = boolean>(
   legacyMessageCommandData?: LegacyMessageCommandData,
 ) {
   abstract class ExtendedBaseLegacyMessageCommandMixin extends BaseLegacyMessageCommandMixin<InGuild> {
-    public getLegacyMessageCommandData(): LegacyMessageCommandData {
+    public override getAdditionalLegacyMessageCommandData(): LegacyMessageCommandData {
       return legacyMessageCommandData || ({} as LegacyMessageCommandData);
     }
   }

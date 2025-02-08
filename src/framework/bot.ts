@@ -3,8 +3,9 @@ import {
   CommandManager,
   CommandManagerOptions,
 } from "./commandManager/index.js";
-import { Logger, LoggerOptions } from "./logger.js";
 import { LichobiError } from "./errors.js";
+import { EventManager } from "./eventManager/index.js";
+import { Logger, LoggerOptions } from "./logger.js";
 
 export type BotOptions = {
   clientOptions: ClientOptions;
@@ -16,6 +17,7 @@ export class Bot<Ready extends boolean = boolean> {
   public readonly client: Client<Ready>;
   public readonly logger: Logger;
   public readonly commandManager: CommandManager;
+  public readonly eventManager: EventManager;
 
   private ready: boolean = false;
 
@@ -26,6 +28,7 @@ export class Bot<Ready extends boolean = boolean> {
       this as Bot<true>,
       options.commandManagerOptions,
     );
+    this.eventManager = new EventManager(this as Bot<true>);
   }
 
   public isReady(): this is Bot<true> {

@@ -1,5 +1,12 @@
 import { Bot, LichobiError } from "#lichobi/framework";
-import { ApplicationCommandDataResolvable, Snowflake } from "discord.js";
+import {
+  ApplicationCommandDataResolvable,
+  ApplicationCommandOptionType,
+  ApplicationCommandType,
+  ContextMenuCommandBuilder,
+  SlashCommandBuilder,
+  Snowflake,
+} from "discord.js";
 import { readdirSync } from "fs";
 import path from "path";
 import {
@@ -35,7 +42,7 @@ export class CommandRegistry {
     this.bot = bot;
   }
 
-  public register(command: BaseCommand): void {
+  public async register(command: BaseCommand): Promise<void> {
     if (command.hasChatInputMixin()) {
       this.registerCommandOfType(LichobiCommandType.ChatInput, command);
     }
@@ -51,6 +58,7 @@ export class CommandRegistry {
     if (command.hasUserContextMenuMixin()) {
       this.registerCommandOfType(LichobiCommandType.UserContextMenu, command);
     }
+    await command.setup?.();
   }
 
   private registerCommandOfType<T extends LichobiCommandType>(
@@ -127,7 +135,7 @@ export class CommandRegistry {
           CommandRegistry.ValidExtensions.includes(path.extname(item.name))
         ) {
           const commands = await this.importCommand(fullPath);
-          commands.forEach((command) => this.register(command));
+          await Promise.all(commands.map((command) => this.register(command)));
         }
       }),
     );
@@ -191,16 +199,13 @@ export class CommandRegistry {
   ): Promise<void> {
     const commands: ApplicationCommandDataResolvable[] = [];
     for (const command of this.chatInputCommands.values()) {
-      commands.push({
-        ...command.getBaseCommandData(),
-        ...command.getChatInputCommandData(),
-      });
+      commands.push(this.buildChatInputDiscordCommandData(command));
     }
     for (const command of this.messageContextMenuCommands.values()) {
-      commands.push(command.getBaseCommandData());
+      commands.push(this.buildMessageContextMenuDiscordCommandData(command));
     }
     for (const command of this.userContextMenuCommands.values()) {
-      commands.push(command.getBaseCommandData());
+      commands.push(this.buildUserContextMenuDiscordCommandData(command));
     }
     this.bot.logger.debug("Starting to register commands on Discord");
     if (guildId) {
@@ -209,5 +214,154 @@ export class CommandRegistry {
       await this.bot.client.application.commands.set(commands);
     }
     this.bot.logger.info("Successfully registered commands on Discord");
+  }
+
+  private buildChatInputDiscordCommandData(
+    command: LichobiCommandTypeToClassMap["CHAT_INPUT"],
+  ): ApplicationCommandDataResolvable {
+    const commandData = {
+      ...command.getBaseCommandData(),
+      ...command.getAdditionalChatInputCommandData(),
+    };
+    const builder = new SlashCommandBuilder()
+      .setName(commandData.name)
+      .setDescription(commandData.description);
+    commandData.options?.forEach((option) => {
+      switch (option.type) {
+        case ApplicationCommandOptionType.Number:
+          builder.addNumberOption((o) => {
+            o.setName(option.name)
+              .setDescription(option.description)
+              .setRequired(option.required ?? false)
+              .setAutocomplete(option.autocomplete ?? false);
+            if (option.minValue !== undefined) {
+              o.setMinValue(option.minValue);
+            }
+            if (option.maxValue !== undefined) {
+              o.setMaxValue(option.maxValue);
+            }
+            if (!option.autocomplete && option.choices) {
+              o.setChoices(...option.choices);
+            }
+            return o;
+          });
+          break;
+        case ApplicationCommandOptionType.Integer:
+          builder.addIntegerOption((o) => {
+            o.setName(option.name)
+              .setDescription(option.description)
+              .setRequired(option.required ?? false)
+              .setAutocomplete(option.autocomplete ?? false);
+            if (option.minValue !== undefined) {
+              o.setMinValue(option.minValue);
+            }
+            if (option.maxValue !== undefined) {
+              o.setMaxValue(option.maxValue);
+            }
+            if (!option.autocomplete && option.choices) {
+              o.setChoices(...option.choices);
+            }
+            return o;
+          });
+          break;
+        case ApplicationCommandOptionType.String:
+          builder.addStringOption((o) => {
+            o.setName(option.name)
+              .setDescription(o.description)
+              .setRequired(option.required ?? false)
+              .setAutocomplete(option.autocomplete ?? false);
+            if (option.minLength !== undefined) {
+              o.setMinLength(option.minLength);
+            }
+            if (option.maxLength !== undefined) {
+              o.setMaxLength(option.maxLength);
+            }
+            if (!option.autocomplete && option.choices) {
+              o.setChoices(...option.choices);
+            }
+            return o;
+          });
+          break;
+        case ApplicationCommandOptionType.Channel:
+          builder.addChannelOption((o) => {
+            o.setName(option.name)
+              .setDescription(o.description)
+              .setRequired(option.required ?? false);
+            if (option.channelTypes) {
+              o.addChannelTypes(...option.channelTypes);
+            }
+            return o;
+          });
+          break;
+        case ApplicationCommandOptionType.Role:
+          builder.addRoleOption((o) =>
+            o
+              .setName(option.name)
+              .setDescription(option.description)
+              .setRequired(option.required ?? false),
+          );
+          break;
+        case ApplicationCommandOptionType.User:
+          builder.addUserOption((o) =>
+            o
+              .setName(option.name)
+              .setDescription(option.description)
+              .setRequired(option.required ?? false),
+          );
+          break;
+        case ApplicationCommandOptionType.Mentionable:
+          builder.addMentionableOption((o) =>
+            o
+              .setName(option.name)
+              .setDescription(option.description)
+              .setRequired(option.required ?? false),
+          );
+          break;
+        case ApplicationCommandOptionType.Boolean:
+          builder.addBooleanOption((o) =>
+            o
+              .setName(option.name)
+              .setDescription(option.description)
+              .setRequired(option.required ?? false),
+          );
+          break;
+        case ApplicationCommandOptionType.Attachment:
+          builder.addAttachmentOption((o) =>
+            o
+              .setName(option.name)
+              .setDescription(option.description)
+              .setRequired(option.required ?? false),
+          );
+          break;
+        default:
+          option satisfies never;
+          throw new LichobiError(
+            `Unhandled chat input command option type: ${option["type"]}`,
+          );
+      }
+    });
+    return builder;
+  }
+
+  private buildMessageContextMenuDiscordCommandData(
+    command: LichobiCommandTypeToClassMap["MESSAGE"],
+  ): ApplicationCommandDataResolvable {
+    const commandData = {
+      ...command.getBaseCommandData(),
+    };
+    return new ContextMenuCommandBuilder()
+      .setName(commandData.name)
+      .setType(ApplicationCommandType.Message);
+  }
+
+  private buildUserContextMenuDiscordCommandData(
+    command: LichobiCommandTypeToClassMap["USER"],
+  ): ApplicationCommandDataResolvable {
+    const commandData = {
+      ...command.getBaseCommandData(),
+    };
+    return new ContextMenuCommandBuilder()
+      .setName(commandData.name)
+      .setType(ApplicationCommandType.User);
   }
 }

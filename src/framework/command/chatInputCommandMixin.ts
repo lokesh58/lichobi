@@ -1,70 +1,136 @@
 import {
-  ApplicationCommandAttachmentOption,
-  ApplicationCommandAutocompleteNumericOption,
-  ApplicationCommandAutocompleteStringOption,
-  ApplicationCommandBooleanOption,
-  ApplicationCommandChannelOption,
-  ApplicationCommandMentionableOption,
-  ApplicationCommandNumericOption,
+  ApplicationCommandOptionAllowedChannelTypes,
   ApplicationCommandOptionType,
-  ApplicationCommandRoleOption,
-  ApplicationCommandStringOption,
-  ApplicationCommandUserOption,
   AutocompleteInteraction,
   CacheType,
   ChannelType,
   ChatInputCommandInteraction,
   CommandInteractionOption,
-  LocalizationMap,
 } from "discord.js";
 import { Simplify } from "type-fest";
 import { LichobiError } from "../errors.js";
 
-type ApplicationCommandAutocompleteNumberOption = Exclude<
-  ApplicationCommandAutocompleteNumericOption,
-  "type"
-> & {
-  type: ApplicationCommandOptionType.Number;
+type BaseChatInputCommandOption = {
+  name: string;
+  description: string;
+  required?: boolean;
+  autocomplete?: never;
 };
 
-type ApplicationCommandAutocompleteIntegerOption = Exclude<
-  ApplicationCommandAutocompleteNumericOption,
-  "type"
-> & {
-  type: ApplicationCommandOptionType.Integer;
+type ChatInputCommandAutocompleteNumberOption = Simplify<
+  Omit<BaseChatInputCommandOption, "autocomplete"> & {
+    type: ApplicationCommandOptionType.Number;
+    minValue?: number;
+    maxValue?: number;
+    autocomplete: true;
+  }
+>;
+
+type ChatInputCommandAutocompleteIntegerOption = Simplify<
+  Omit<BaseChatInputCommandOption, "autocomplete"> & {
+    type: ApplicationCommandOptionType.Integer;
+    minValue?: number;
+    maxValue?: number;
+    autocomplete: true;
+  }
+>;
+
+type ChatInputCommandAutocompleteStringOption = Simplify<
+  Omit<BaseChatInputCommandOption, "autocomplete"> & {
+    type: ApplicationCommandOptionType.String;
+    minLength?: number;
+    maxLength?: number;
+    autocomplete: true;
+  }
+>;
+
+type ChatInputCommandOptionChoiceData<Value extends string | number> = {
+  name: string;
+  value: Value;
 };
 
-type ApplicationCommandNumberOption = Exclude<
-  ApplicationCommandNumericOption,
-  "type"
-> & {
-  type: ApplicationCommandOptionType.Number;
-};
+type ChatInputCommandNumberOption = Simplify<
+  Omit<BaseChatInputCommandOption, "autocomplete"> & {
+    type: ApplicationCommandOptionType.Number;
+    minValue?: number;
+    maxValue?: number;
+    choices?: readonly ChatInputCommandOptionChoiceData<number>[];
+    autocomplete?: false;
+  }
+>;
 
-type ApplicationCommandIntegerOption = Exclude<
-  ApplicationCommandNumericOption,
-  "type"
-> & {
-  type: ApplicationCommandOptionType.Integer;
-};
+type ChatInputCommandIntegerOption = Simplify<
+  Omit<BaseChatInputCommandOption, "autocomplete"> & {
+    type: ApplicationCommandOptionType.Integer;
+    minValue?: number;
+    maxValue?: number;
+    choices?: readonly ChatInputCommandOptionChoiceData<number>[];
+    autocomplete?: false;
+  }
+>;
+
+type ChatInputCommandStringOption = Simplify<
+  Omit<BaseChatInputCommandOption, "autocomplete"> & {
+    type: ApplicationCommandOptionType.String;
+    minLength?: number;
+    maxLength?: number;
+    choices?: readonly ChatInputCommandOptionChoiceData<string>[];
+    autocomplete?: false;
+  }
+>;
+
+type ChatInputCommandChannelOption = Simplify<
+  BaseChatInputCommandOption & {
+    type: ApplicationCommandOptionType.Channel;
+    channelTypes?: readonly ApplicationCommandOptionAllowedChannelTypes[];
+  }
+>;
+
+type ChatInputCommandRoleOption = Simplify<
+  BaseChatInputCommandOption & {
+    type: ApplicationCommandOptionType.Role;
+  }
+>;
+
+type ChatInputCommandUserOption = Simplify<
+  BaseChatInputCommandOption & {
+    type: ApplicationCommandOptionType.User;
+  }
+>;
+
+type ChatInputCommandMentionableOption = Simplify<
+  BaseChatInputCommandOption & {
+    type: ApplicationCommandOptionType.Mentionable;
+  }
+>;
+
+type ChatInputCommandBooleanOption = Simplify<
+  BaseChatInputCommandOption & {
+    type: ApplicationCommandOptionType.Boolean;
+  }
+>;
+
+type ChatInputCommandAttachmentOption = Simplify<
+  BaseChatInputCommandOption & {
+    type: ApplicationCommandOptionType.Attachment;
+  }
+>;
 
 type ChatInputCommandOption =
-  | ApplicationCommandAutocompleteNumberOption
-  | ApplicationCommandAutocompleteIntegerOption
-  | ApplicationCommandAutocompleteStringOption
-  | ApplicationCommandNumberOption
-  | ApplicationCommandIntegerOption
-  | ApplicationCommandStringOption
-  | ApplicationCommandChannelOption
-  | ApplicationCommandRoleOption
-  | ApplicationCommandUserOption
-  | ApplicationCommandMentionableOption
-  | ApplicationCommandBooleanOption
-  | ApplicationCommandAttachmentOption;
+  | ChatInputCommandAutocompleteNumberOption
+  | ChatInputCommandAutocompleteIntegerOption
+  | ChatInputCommandAutocompleteStringOption
+  | ChatInputCommandNumberOption
+  | ChatInputCommandIntegerOption
+  | ChatInputCommandStringOption
+  | ChatInputCommandChannelOption
+  | ChatInputCommandRoleOption
+  | ChatInputCommandUserOption
+  | ChatInputCommandMentionableOption
+  | ChatInputCommandBooleanOption
+  | ChatInputCommandAttachmentOption;
 
 type ChatInputCommandData = {
-  description?: string;
-  descriptionLocalizations?: LocalizationMap;
   options?: readonly ChatInputCommandOption[];
 };
 
@@ -73,51 +139,54 @@ type ChatInputOptions<CommandData extends ChatInputCommandData> =
     ? CommandData["options"]
     : readonly [];
 
-type OptionTypeToValueType<
+type OptionTypeToValueTypeMap<Cached extends CacheType = CacheType> = {
+  [ApplicationCommandOptionType.Number]: ReturnType<
+    ChatInputCommandInteraction<Cached>["options"]["getNumber"]
+  >;
+  [ApplicationCommandOptionType.Integer]: ReturnType<
+    ChatInputCommandInteraction<Cached>["options"]["getInteger"]
+  >;
+  [ApplicationCommandOptionType.String]: ReturnType<
+    ChatInputCommandInteraction<Cached>["options"]["getString"]
+  >;
+  [ApplicationCommandOptionType.Role]: ReturnType<
+    ChatInputCommandInteraction<Cached>["options"]["getRole"]
+  >;
+  [ApplicationCommandOptionType.User]: ReturnType<
+    ChatInputCommandInteraction<Cached>["options"]["getUser"]
+  >;
+  [ApplicationCommandOptionType.Mentionable]: ReturnType<
+    ChatInputCommandInteraction<Cached>["options"]["getMentionable"]
+  >;
+  [ApplicationCommandOptionType.Boolean]: ReturnType<
+    ChatInputCommandInteraction<Cached>["options"]["getBoolean"]
+  >;
+  [ApplicationCommandOptionType.Attachment]: ReturnType<
+    ChatInputCommandInteraction<Cached>["options"]["getAttachment"]
+  >;
+};
+
+type OptionToValueType<
   Option extends ChatInputCommandOption,
   Cached extends CacheType = CacheType,
-> = Option extends ApplicationCommandNumberOption
-  ? ReturnType<ChatInputCommandInteraction<Cached>["options"]["getNumber"]>
-  : Option extends ApplicationCommandIntegerOption
-    ? ReturnType<ChatInputCommandInteraction<Cached>["options"]["getInteger"]>
-    : Option extends ApplicationCommandStringOption
-      ? ReturnType<ChatInputCommandInteraction<Cached>["options"]["getString"]>
-      : Option extends ApplicationCommandChannelOption
-        ? // Change to using ReturnType once there is a way to pass the generic type argument
-          Extract<
-            NonNullable<CommandInteractionOption<Cached>["channel"]>,
-            {
-              type: NonNullable<Option["channelTypes"]>[number] extends
-                | ChannelType.PublicThread
-                | ChannelType.AnnouncementThread
-                ? ChannelType.PublicThread | ChannelType.AnnouncementThread
-                : NonNullable<Option["channelTypes"]>[number];
-            }
-          > | null
-        : Option extends ApplicationCommandRoleOption
-          ? ReturnType<
-              ChatInputCommandInteraction<Cached>["options"]["getRole"]
-            >
-          : Option extends ApplicationCommandUserOption
-            ? ReturnType<
-                ChatInputCommandInteraction<Cached>["options"]["getUser"]
-              >
-            : Option extends ApplicationCommandMentionableOption
-              ? ReturnType<
-                  ChatInputCommandInteraction<Cached>["options"]["getMentionable"]
-                >
-              : Option extends ApplicationCommandBooleanOption
-                ? ReturnType<
-                    ChatInputCommandInteraction<Cached>["options"]["getBoolean"]
-                  >
-                : Option extends ApplicationCommandAttachmentOption
-                  ? ReturnType<
-                      ChatInputCommandInteraction<Cached>["options"]["getAttachment"]
-                    >
-                  : never;
+> = Option extends ChatInputCommandChannelOption
+  ? // Change to using OptionTypeToValueTypeMap once there is a way to pass the generic type argument
+    Extract<
+      NonNullable<CommandInteractionOption<Cached>["channel"]>,
+      {
+        type: NonNullable<Option["channelTypes"]>[number] extends
+          | ChannelType.PublicThread
+          | ChannelType.AnnouncementThread
+          ? ChannelType.PublicThread | ChannelType.AnnouncementThread
+          : NonNullable<Option["channelTypes"]>[number];
+      }
+    > | null
+  : Option["type"] extends keyof OptionTypeToValueTypeMap
+    ? OptionTypeToValueTypeMap[Option["type"]]
+    : never;
 
 type PossibleOptionValues = {
-  [OptionType in ApplicationCommandOptionType]: OptionTypeToValueType<
+  [OptionType in ApplicationCommandOptionType]: OptionToValueType<
     Extract<ChatInputCommandOption, { type: OptionType }>
   >;
 }[ApplicationCommandOptionType];
@@ -127,15 +196,15 @@ type ChatInputCommandExtractedOptions<
   Cached extends CacheType = CacheType,
 > = {
   [Option in Options[number] as Option["name"]]: Option["required"] extends true
-    ? NonNullable<OptionTypeToValueType<Option, Cached>>
-    : OptionTypeToValueType<Option, Cached>;
+    ? NonNullable<OptionToValueType<Option, Cached>>
+    : OptionToValueType<Option, Cached>;
 };
 
 export abstract class BaseChatInputCommandMixin<
   Cached extends CacheType = CacheType,
   CommandData extends ChatInputCommandData = ChatInputCommandData,
 > {
-  public abstract getChatInputCommandData(): CommandData;
+  public abstract getAdditionalChatInputCommandData(): CommandData;
 
   protected extractChatInputOptionsData(
     interaction: ChatInputCommandInteraction<Cached>,
@@ -143,7 +212,7 @@ export abstract class BaseChatInputCommandMixin<
     ChatInputCommandExtractedOptions<ChatInputOptions<CommandData>, Cached>
   > {
     return Object.fromEntries(
-      this.getChatInputCommandData().options?.map((option) => [
+      this.getAdditionalChatInputCommandData().options?.map((option) => [
         option.name,
         this.extractChatInputOptionValue(interaction, option),
       ]) ?? [],
@@ -203,7 +272,7 @@ export function ChatInputCommandMixin<
     Cached,
     CommandData
   > {
-    public getChatInputCommandData(): CommandData {
+    public override getAdditionalChatInputCommandData(): CommandData {
       return chatInputCommandData || ({} as CommandData);
     }
   }

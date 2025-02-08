@@ -10,6 +10,7 @@
     "strict": true,
     "exactOptionalPropertyTypes": true,
     "skipLibCheck": true,
+    "noImplicitOverride": true,
     "paths": {
       "#lichobi/framework": ["./src/framework/index.js"],
       "#root/*": ["./src/*"]

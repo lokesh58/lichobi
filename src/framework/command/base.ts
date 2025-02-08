@@ -1,4 +1,4 @@
-import { BaseApplicationCommandData, LocalizationMap } from "discord.js";
+import { Awaitable } from "discord.js";
 import { hasMixin } from "ts-mixer";
 import { Bot } from "../bot.js";
 import { BaseChatInputCommandMixin } from "./chatInputCommandMixin.js";
@@ -6,9 +6,9 @@ import { BaseLegacyMessageCommandMixin } from "./legacyMessageCommandMixin.js";
 import { BaseMessageContextMenuCommandMixin } from "./messageContextMenuCommandMixin.js";
 import { BaseUserContextMenuCommandMixin } from "./userContextMenuCommandMixin.js";
 
-type BaseCommandData = BaseApplicationCommandData & {
+type BaseCommandData = {
+  name: string;
   description: string;
-  descriptionLocalizations?: LocalizationMap;
 };
 
 export abstract class BaseCommand {
@@ -17,6 +17,8 @@ export abstract class BaseCommand {
   constructor(bot: Bot<true>) {
     this.bot = bot;
   }
+
+  public setup?(): Awaitable<void> {}
 
   public abstract getBaseCommandData(): BaseCommandData;
 
@@ -39,7 +41,7 @@ export abstract class BaseCommand {
 
 export function Command(baseCommandData: BaseCommandData) {
   abstract class ExtendedBaseCommand extends BaseCommand {
-    public getBaseCommandData(): BaseCommandData {
+    public override getBaseCommandData(): BaseCommandData {
       return baseCommandData;
     }
   }

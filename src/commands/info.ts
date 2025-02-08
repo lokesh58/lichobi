@@ -5,7 +5,7 @@ type EmbedBuildData = {
   roundtripLatency: number;
 };
 
-export default class InfoCommand extends LichobiCommand(
+export class InfoCommand extends LichobiCommand(
   LichobiCommand.Base({
     name: "info",
     description: "Get some info about me.",
@@ -13,7 +13,7 @@ export default class InfoCommand extends LichobiCommand(
   LichobiCommand.ChatInputCommandMixin(),
   LichobiCommand.LegacyMessageCommandMixin(),
 ) {
-  public async handleChatInput(
+  public override async handleChatInput(
     interaction: ChatInputCommandInteraction,
   ): Promise<void> {
     const infoMessage = await interaction.deferReply({ fetchReply: true });
@@ -27,7 +27,7 @@ export default class InfoCommand extends LichobiCommand(
     });
   }
 
-  public async handleLegacyMessage(message: Message): Promise<void> {
+  public override async handleLegacyMessage(message: Message): Promise<void> {
     const infoMessage = await message.channel.send({
       content: "⏳ Crunching latest info...",
     });
@@ -43,13 +43,12 @@ export default class InfoCommand extends LichobiCommand(
   }
 
   private buildInfoEmbed(data: EmbedBuildData): EmbedBuilder {
-    const { client } = this.bot;
     return new EmbedBuilder()
-      .setTitle(`${client.user.username}'s info`)
+      .setTitle(`${this.bot.client.user.username}'s info`)
       .setDescription(
         [
           `⏱️ **Roundtrip Latency:** ${data.roundtripLatency}ms`,
-          `📡 **Websocket Latency:** ${Math.round(client.ws.ping)}ms`,
+          `📡 **Websocket Latency:** ${Math.round(this.bot.client.ws.ping)}ms`,
         ].join("\n"),
       );
   }
