@@ -81,7 +81,6 @@ export class RuncodeCommand extends LichobiCommand(
   public override async handleMessageContext(
     interaction: MessageContextMenuCommandInteraction,
   ): Promise<void> {
-    await interaction.deferReply();
     const codeExtract = await RuncodeCommand.extractCode(
       interaction.targetMessage.content,
     );
