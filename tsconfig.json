@@ -13,7 +13,8 @@
     "noImplicitOverride": true,
     "paths": {
       "#lichobi/framework": ["./src/framework/index.js"],
-      "#root/*": ["./src/*"]
+      "#root/*": ["./src/*"],
+      "#utils/*": ["./src/utils/*"]
     }
   },
   "include": ["./src/**/*.ts", "./src/**/*.json"],

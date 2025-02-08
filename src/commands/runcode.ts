@@ -1,5 +1,6 @@
 import { LichobiCommand } from "#lichobi/framework";
-import { CodeRunner } from "#root/utils/codeRunner.js";
+import { CodeRunner } from "#utils/codeRunner.js";
+import { LocalCache } from "#utils/localCache.js";
 import {
   ActionRowBuilder,
   EmbedBuilder,
@@ -26,28 +27,37 @@ export default class RuncodeCommand extends LichobiCommand(
 ) {
   private static readonly ModalIdPrefix: string = "codeInput-";
   private static readonly InputId: string = "programInput";
+  private static readonly codeBlockCache = new LocalCache<CodeBlock>({
+    ttlSeconds: 300, // 5 minutes
+    cleanupIntervalSeconds: 60, // 1 minute
+  });
 
   public override setup(): void {
     this.bot.client.on(Events.InteractionCreate, async (interaction) => {
       if (!interaction.isModalSubmit()) return;
-
       if (!interaction.customId.startsWith(RuncodeCommand.ModalIdPrefix))
         return;
+
+      const originalCommandInteractionId = interaction.customId.substring(
+        RuncodeCommand.ModalIdPrefix.length,
+      );
+      const codeBlock = RuncodeCommand.codeBlockCache.get(
+        originalCommandInteractionId,
+      );
+      if (!codeBlock) {
+        await interaction.reply({
+          embeds: [RuncodeCommand.getExpiredCodeBlockEmbed()],
+          ephemeral: true,
+        });
+        return;
+      }
+      // Clean up cache as a modal interaction will only need to be handled once
+      RuncodeCommand.codeBlockCache.delete(originalCommandInteractionId);
 
       await interaction.deferReply();
       const input = interaction.fields.getTextInputValue(
         RuncodeCommand.InputId,
       );
-
-      const messageId = interaction.customId.substring(
-        RuncodeCommand.ModalIdPrefix.length,
-      );
-      const message = await interaction.channel?.messages.fetch(messageId);
-      if (!message) return;
-
-      const codeBlock = RuncodeCommand.extractCodeBlock(message.content);
-      if (!codeBlock) return;
-
       const responseEmbed = await RuncodeCommand.generateResponseEmbed(
         codeBlock,
         input,
@@ -70,14 +80,14 @@ export default class RuncodeCommand extends LichobiCommand(
       return;
     }
 
-    const modalCustomId = `${RuncodeCommand.ModalIdPrefix}${interaction.targetMessage.id}`;
-    const modal = RuncodeCommand.createInputModal(modalCustomId);
+    RuncodeCommand.codeBlockCache.set(interaction.id, codeBlock);
+    const modal = RuncodeCommand.createInputModal(interaction.id);
     await interaction.showModal(modal);
   }
 
-  private static createInputModal(modalCustomId: string): ModalBuilder {
+  private static createInputModal(interactionId: string): ModalBuilder {
     const modal = new ModalBuilder()
-      .setCustomId(modalCustomId)
+      .setCustomId(`${RuncodeCommand.ModalIdPrefix}${interactionId}`)
       .setTitle("Program Input");
 
     const inputField = new TextInputBuilder()
@@ -90,7 +100,6 @@ export default class RuncodeCommand extends LichobiCommand(
       inputField,
     );
     modal.addComponents(row);
-
     return modal;
   }
 
@@ -121,6 +130,15 @@ export default class RuncodeCommand extends LichobiCommand(
     return new EmbedBuilder()
       .setTitle("Invalid code block!")
       .setDescription("The message does not contain a valid code block.")
+      .setColor("Red");
+  }
+
+  private static getExpiredCodeBlockEmbed(): EmbedBuilder {
+    return new EmbedBuilder()
+      .setTitle("Code block expired!")
+      .setDescription(
+        "The code block has expired. Please try running the command again.",
+      )
       .setColor("Red");
   }
 
