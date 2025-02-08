@@ -188,8 +188,8 @@ export default class RuncodeCommand extends LichobiCommand(
   }
 
   private static formatTextForEmbed(text: string, language?: string): string {
-    const maxFieldLength = 1024;
     if (!text) return text;
+    const maxFieldLength = 1024;
     const maxContentLength = maxFieldLength - 50; // Leave room for formatting and truncation message
     const displayText =
       text.length <= maxContentLength
