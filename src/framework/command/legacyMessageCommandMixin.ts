@@ -30,7 +30,7 @@ export function LegacyMessageCommandMixin<InGuild extends boolean = boolean>(
   legacyMessageCommandData?: LegacyMessageCommandData,
 ) {
   abstract class ExtendedBaseLegacyMessageCommandMixin extends BaseLegacyMessageCommandMixin<InGuild> {
-    public getAdditionalLegacyMessageCommandData(): LegacyMessageCommandData {
+    public override getAdditionalLegacyMessageCommandData(): LegacyMessageCommandData {
       return legacyMessageCommandData || ({} as LegacyMessageCommandData);
     }
   }

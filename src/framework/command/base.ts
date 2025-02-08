@@ -38,7 +38,7 @@ export abstract class BaseCommand {
 
 export function Command(baseCommandData: BaseCommandData) {
   abstract class ExtendedBaseCommand extends BaseCommand {
-    public getBaseCommandData(): BaseCommandData {
+    public override getBaseCommandData(): BaseCommandData {
       return baseCommandData;
     }
   }

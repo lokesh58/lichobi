@@ -272,7 +272,7 @@ export function ChatInputCommandMixin<
     Cached,
     CommandData
   > {
-    public getAdditionalChatInputCommandData(): CommandData {
+    public override getAdditionalChatInputCommandData(): CommandData {
       return chatInputCommandData || ({} as CommandData);
     }
   }
