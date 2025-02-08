@@ -1,8 +1,10 @@
 import { Bot, LichobiError } from "#lichobi/framework";
 import {
   ApplicationCommandDataResolvable,
+  ApplicationCommandOptionType,
   ApplicationCommandType,
   ContextMenuCommandBuilder,
+  SlashCommandBuilder,
   Snowflake,
 } from "discord.js";
 import { readdirSync } from "fs";
@@ -216,18 +218,128 @@ export class CommandRegistry {
   private buildChatInputDiscordCommandData(
     command: LichobiCommandTypeToClassMap["CHAT_INPUT"],
   ): ApplicationCommandDataResolvable {
-    // const commandData = {
-    //   ...command.getBaseCommandData(),
-    //   ...command.getAdditionalChatInputCommandData(),
-    // };
-    // return new SlashCommandBuilder()
-    //   .setName(commandData.name)
-    //   .setDescription(commandData.description); // TODO: How to add options
-    return {
-      type: ApplicationCommandType.ChatInput,
+    const commandData = {
       ...command.getBaseCommandData(),
       ...command.getAdditionalChatInputCommandData(),
     };
+    const builder = new SlashCommandBuilder()
+      .setName(commandData.name)
+      .setDescription(commandData.description);
+    commandData.options?.forEach((option) => {
+      switch (option.type) {
+        case ApplicationCommandOptionType.Number:
+          builder.addNumberOption((o) => {
+            o.setName(option.name)
+              .setDescription(option.description)
+              .setRequired(option.required ?? false)
+              .setAutocomplete(option.autocomplete ?? false);
+            if (option.minValue !== undefined) {
+              o.setMinValue(option.minValue);
+            }
+            if (option.maxValue !== undefined) {
+              o.setMaxValue(option.maxValue);
+            }
+            if (!option.autocomplete && option.choices) {
+              o.setChoices(...option.choices);
+            }
+            return o;
+          });
+          break;
+        case ApplicationCommandOptionType.Integer:
+          builder.addIntegerOption((o) => {
+            o.setName(option.name)
+              .setDescription(option.description)
+              .setRequired(option.required ?? false)
+              .setAutocomplete(option.autocomplete ?? false);
+            if (option.minValue !== undefined) {
+              o.setMinValue(option.minValue);
+            }
+            if (option.maxValue !== undefined) {
+              o.setMaxValue(option.maxValue);
+            }
+            if (!option.autocomplete && option.choices) {
+              o.setChoices(...option.choices);
+            }
+            return o;
+          });
+          break;
+        case ApplicationCommandOptionType.String:
+          builder.addStringOption((o) => {
+            o.setName(option.name)
+              .setDescription(o.description)
+              .setRequired(option.required ?? false)
+              .setAutocomplete(option.autocomplete ?? false);
+            if (option.minLength !== undefined) {
+              o.setMinLength(option.minLength);
+            }
+            if (option.maxLength !== undefined) {
+              o.setMaxLength(option.maxLength);
+            }
+            if (!option.autocomplete && option.choices) {
+              o.setChoices(...option.choices);
+            }
+            return o;
+          });
+          break;
+        case ApplicationCommandOptionType.Channel:
+          builder.addChannelOption((o) => {
+            o.setName(option.name)
+              .setDescription(o.description)
+              .setRequired(option.required ?? false);
+            if (option.channelTypes) {
+              o.addChannelTypes(...option.channelTypes);
+            }
+            return o;
+          });
+          break;
+        case ApplicationCommandOptionType.Role:
+          builder.addRoleOption((o) =>
+            o
+              .setName(option.name)
+              .setDescription(option.description)
+              .setRequired(option.required ?? false),
+          );
+          break;
+        case ApplicationCommandOptionType.User:
+          builder.addUserOption((o) =>
+            o
+              .setName(option.name)
+              .setDescription(option.description)
+              .setRequired(option.required ?? false),
+          );
+          break;
+        case ApplicationCommandOptionType.Mentionable:
+          builder.addMentionableOption((o) =>
+            o
+              .setName(option.name)
+              .setDescription(option.description)
+              .setRequired(option.required ?? false),
+          );
+          break;
+        case ApplicationCommandOptionType.Boolean:
+          builder.addBooleanOption((o) =>
+            o
+              .setName(option.name)
+              .setDescription(option.description)
+              .setRequired(option.required ?? false),
+          );
+          break;
+        case ApplicationCommandOptionType.Attachment:
+          builder.addAttachmentOption((o) =>
+            o
+              .setName(option.name)
+              .setDescription(option.description)
+              .setRequired(option.required ?? false),
+          );
+          break;
+        default:
+          option satisfies never;
+          throw new LichobiError(
+            `Unhandled chat input command option type: ${option["type"]}`,
+          );
+      }
+    });
+    return builder;
   }
 
   private buildMessageContextMenuDiscordCommandData(
