@@ -2,7 +2,7 @@ import {
   LichobiCommand,
   LichobiEvent,
   UserDisplayableError,
-  UserError,
+  UserInputError,
 } from "#lichobi/framework";
 import { CodeRunner, LocalCache } from "#root/utils/index.js";
 import {
@@ -24,7 +24,7 @@ type CodeExtract = {
   code: string;
 };
 
-class NoCodeBlockError extends UserError {
+class NoCodeBlockError extends UserInputError {
   constructor() {
     super("The message does not contain a valid code block");
   }

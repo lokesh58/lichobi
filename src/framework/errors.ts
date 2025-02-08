@@ -18,7 +18,17 @@ export class UnknownCommandError extends LichobiError {
   }
 }
 
-export class UserError extends LichobiError {
+export class UserDisplayableError extends LichobiError {
+  constructor(message: string) {
+    super(message);
+  }
+
+  public override displayMessage(): string {
+    return `⚠️ ${this.message}`;
+  }
+}
+
+export class UserInputError extends LichobiError {
   constructor(message: string) {
     super(message);
   }
@@ -28,18 +38,8 @@ export class UserError extends LichobiError {
   }
 }
 
-export class InvalidCommandError extends UserError {
+export class InvalidCommandError extends UserInputError {
   constructor(commandName: string) {
     super(`Invalid command: ${commandName}`);
-  }
-}
-
-export class UserDisplayableError extends LichobiError {
-  constructor(message: string) {
-    super(message);
-  }
-
-  public override displayMessage(): string {
-    return `⚠️ ${this.message}`;
   }
 }
