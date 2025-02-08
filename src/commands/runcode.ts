@@ -131,7 +131,8 @@ export class RuncodeCommand extends LichobiCommand(
     if (!supportedLanguages.map((l) => l.language).includes(res[2])) {
       throw new UserDisplayableError(
         [
-          `Language ${inlineCode(res[2])} is not supported. Supported languages are:`,
+          `Language ${inlineCode(res[2])} is not supported.`,
+          "Supported languages are:",
           ...supportedLanguages.map(
             (l) => `• ${l.display} (${inlineCode(l.language)})`,
           ),
