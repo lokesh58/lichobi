@@ -4,7 +4,7 @@ import config from "#root/config.js";
 export type CodeRunnerParams = {
   language: string;
   code: string;
-  input?: string | null;
+  input?: string;
 };
 
 export type CodeRunnerResult = {
