@@ -1,6 +1,7 @@
 import {
   AutocompleteInteraction,
   ChatInputCommandInteraction,
+  Colors,
   EmbedBuilder,
   Events,
   InteractionReplyOptions,
@@ -168,7 +169,7 @@ export class CommandManager {
         : new UnexpectedError(rawError);
     return new EmbedBuilder()
       .setDescription(error.displayMessage())
-      .setColor("Red");
+      .setColor(Colors.Red);
   }
 
   private startLegacyMessageCommandHandler(): void {

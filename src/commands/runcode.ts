@@ -3,6 +3,7 @@ import { CodeRunner } from "#utils/codeRunner.js";
 import { LocalCache } from "#utils/localCache.js";
 import {
   ActionRowBuilder,
+  Colors,
   EmbedBuilder,
   Events,
   Message,
@@ -10,6 +11,7 @@ import {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
+  codeBlock as codeBlockFormatter,
 } from "discord.js";
 
 type CodeBlock = {
@@ -130,7 +132,7 @@ export default class RuncodeCommand extends LichobiCommand(
     return new EmbedBuilder()
       .setTitle("Invalid code block!")
       .setDescription("The message does not contain a valid code block.")
-      .setColor("Red");
+      .setColor(Colors.Red);
   }
 
   private static getExpiredCodeBlockEmbed(): EmbedBuilder {
@@ -139,7 +141,7 @@ export default class RuncodeCommand extends LichobiCommand(
       .setDescription(
         "The code block has expired. Please try running the command again.",
       )
-      .setColor("Red");
+      .setColor(Colors.Red);
   }
 
   private static async generateResponseEmbed(
@@ -152,15 +154,49 @@ export default class RuncodeCommand extends LichobiCommand(
       code: codeBlock.code,
       input: input || "",
     });
+    const embedColor = !error ? Colors.Green : Colors.Yellow;
     return new EmbedBuilder()
       .setTitle("Code Runner Result")
       .addFields(
-        [
-          { name: "Input", value: input || "No input" },
-          { name: "Output", value: output || "No output" },
-          { name: "Error", value: error || "No error" },
-        ].filter((x) => !!x),
+        {
+          name: "Code",
+          value: RuncodeCommand.formatTextForEmbed(
+            codeBlock.code,
+            codeBlock.language,
+          ),
+        },
+        {
+          name: "Input",
+          value: input
+            ? RuncodeCommand.formatTextForEmbed(input)
+            : "*No input provided*",
+        },
+        {
+          name: "Output",
+          value: output
+            ? RuncodeCommand.formatTextForEmbed(output)
+            : "*No output generated*",
+        },
+        {
+          name: "Error",
+          value: error
+            ? RuncodeCommand.formatTextForEmbed(error)
+            : "*No errors occurred*",
+        },
       )
-      .setColor("Green");
+      .setColor(embedColor);
+  }
+
+  private static formatTextForEmbed(text: string, language?: string): string {
+    const maxFieldLength = 1024;
+    if (!text) return text;
+    const maxContentLength = maxFieldLength - 50; // Leave room for formatting and truncation message
+    const displayText =
+      text.length <= maxContentLength
+        ? text
+        : text.slice(0, maxContentLength) + "\n... (truncated)";
+    return language
+      ? codeBlockFormatter(language, displayText)
+      : codeBlockFormatter(displayText);
   }
 }
