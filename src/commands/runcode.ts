@@ -21,7 +21,7 @@ import {
 } from "discord.js";
 
 type CodeExtract = {
-  language: string;
+  language: keyof (typeof RuncodeCommand)["SupportedLanguages"];
   code: string;
 };
 
@@ -33,6 +33,32 @@ export class RuncodeCommand extends LichobiCommand(
   LichobiCommand.MessageContextMenuCommandMixin(),
   LichobiCommand.LegacyMessageCommandMixin(),
 ) {
+  private static readonly SupportedLanguages = Object.freeze({
+    c: {
+      display: "C",
+      aliases: [],
+    },
+    cpp: {
+      display: "C++",
+      aliases: ["c++", "cc"],
+    },
+    js: {
+      display: "JavaScript",
+      aliases: ["javascript"],
+    },
+    ts: {
+      display: "TypeScript",
+      aliases: ["typescript"],
+    },
+    py: {
+      display: "Python",
+      aliases: ["python"],
+    },
+    rs: {
+      display: "Rust",
+      aliases: ["rust"],
+    },
+  } satisfies Record<string, { display: string; aliases: string[] }>);
   private static readonly ModalIdPrefix: string = "codeInput-";
   private static readonly InputId: string = "programInput";
   private static readonly codeExtractCache = new LocalCache<CodeExtract>({
@@ -125,21 +151,25 @@ export class RuncodeCommand extends LichobiCommand(
         "The message does not contain a valid code block",
       );
     }
-    const supportedLanguages =
-      await CodeRunner.getInstance().getSupportedLanguages();
-    if (!supportedLanguages.map((l) => l.language).includes(res[2])) {
-      throw new UserDisplayableError(
+    const inferredLanguage = Object.entries(
+      RuncodeCommand.SupportedLanguages,
+    ).find(([lang, { aliases }]) =>
+      [lang, ...aliases].includes(res[2].toLowerCase()),
+    )?.[0] as keyof (typeof RuncodeCommand)["SupportedLanguages"] | undefined;
+    if (!inferredLanguage) {
+      throw new UserInputError(
         [
           `Language ${inlineCode(res[2])} is not supported.`,
           "Supported languages are:",
-          ...supportedLanguages.map(
-            (l) => `• ${l.display} (${inlineCode(l.language)})`,
+          ...Object.entries(RuncodeCommand.SupportedLanguages).map(
+            ([lang, { display, aliases }]) =>
+              `• ${display} (${[lang, ...aliases].map((langCode) => inlineCode(langCode)).join(", ")})`,
           ),
         ].join("\n"),
       );
     }
     return {
-      language: res[2],
+      language: inferredLanguage,
       code: res[3],
     };
   }
@@ -158,7 +188,7 @@ export class RuncodeCommand extends LichobiCommand(
       .setTitle("Code Runner Result")
       .addFields(
         {
-          name: "Code",
+          name: `${this.SupportedLanguages[codeExtract.language].display} Code`,
           value: RuncodeCommand.formatTextForEmbed(
             codeExtract.code,
             codeExtract.language,

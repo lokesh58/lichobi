@@ -20,15 +20,8 @@ export type CodeRunnerResult = {
 export class CodeRunner {
   private static _instance: CodeRunner | undefined;
 
-  private static readonly CacheTtlSeconds = 3600; // 1 hour
-
   private baseURL: string;
   private token: string;
-
-  private languagesCache: {
-    data: CodeRunnerLanguageDetails[] | null;
-    timestampMs: number;
-  } = { data: null, timestampMs: 0 };
 
   private constructor(baseURL: string, token: string) {
     this.baseURL = baseURL;
@@ -43,34 +36,6 @@ export class CodeRunner {
       );
     }
     return this._instance;
-  }
-
-  public async getSupportedLanguages(): Promise<CodeRunnerLanguageDetails[]> {
-    if (
-      this.languagesCache.data &&
-      Date.now() - this.languagesCache.timestampMs <
-        CodeRunner.CacheTtlSeconds * 1_000
-    ) {
-      return this.languagesCache.data;
-    }
-
-    const response = await fetch(`${this.baseURL}/api/list`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const errorMessage = await response.text();
-      throw new LichobiError(
-        `Failed to retrieve supported languages! Status ${response.status}: ${errorMessage}`,
-      );
-    }
-
-    const data = await response.json();
-    this.languagesCache = { data, timestampMs: Date.now() };
-    return data;
   }
 
   public async runCode(params: CodeRunnerParams): Promise<CodeRunnerResult> {
