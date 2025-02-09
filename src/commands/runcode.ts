@@ -107,7 +107,7 @@ export class RuncodeCommand extends LichobiCommand(
   public override async handleMessageContext(
     interaction: MessageContextMenuCommandInteraction,
   ): Promise<void> {
-    const codeExtract = await RuncodeCommand.extractCode(
+    const codeExtract = RuncodeCommand.extractCode(
       interaction.targetMessage.content,
     );
     RuncodeCommand.codeExtractCache.set(interaction.id, codeExtract);
@@ -134,17 +134,15 @@ export class RuncodeCommand extends LichobiCommand(
   }
 
   public override async handleLegacyMessage(message: Message): Promise<void> {
-    const codeExtract = await RuncodeCommand.extractCode(message.content);
+    const codeExtract = RuncodeCommand.extractCode(message.content);
     const responseEmbed =
       await RuncodeCommand.generateResponseEmbed(codeExtract);
     await message.reply({ embeds: [responseEmbed] });
   }
 
-  private static async extractCode(
-    messageContent: string,
-  ): Promise<CodeExtract> {
+  private static extractCode(messageContent: string): CodeExtract {
     const [res] = messageContent.matchAll(
-      /(?<!\\)(```)(?<=```)(?:([a-z][a-z0-9]*)\s)(.*?)(?<!\\)(?=```)((?:\\\\)*```)/gs,
+      /(?<!\\)(```)(?<=```)(?:(.*?)\s)(.*?)(?<!\\)(?=```)((?:\\\\)*```)/gs,
     );
     if (!res || !res[2] || !res[3]) {
       throw new UserInputError(
