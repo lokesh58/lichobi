@@ -1,13 +1,16 @@
-FROM node:20.11-alpine AS base
+FROM node:22.13-alpine AS base
 
-FROM base AS deps
+FROM base AS base_with_proper_corepack
+RUN npm install -g corepack@0.31.0
+
+FROM base_with_proper_corepack AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN corepack enable
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm fetch --frozen-lockfile
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile --prod
 
-FROM base AS build
+FROM base_with_proper_corepack AS build
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN corepack enable
