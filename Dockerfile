@@ -1,4 +1,4 @@
-FROM node:22.13-alpine AS base
+FROM node:22.14-alpine AS base
 
 FROM base AS base_with_proper_corepack
 RUN npm install -g corepack@0.31.0
