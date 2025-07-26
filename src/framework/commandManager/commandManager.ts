@@ -72,6 +72,8 @@ export class CommandManager {
             await this.handleMessageContextMenuInteraction(interaction);
           } else if (interaction.isUserContextMenuCommand()) {
             await this.handleUserContextMenuInteraction(interaction);
+          } else if (interaction.isPrimaryEntryPointCommand()) {
+            throw new LichobiError(`Entry Point Command is not handled.`);
           } else {
             interaction satisfies never;
             throw new LichobiError(

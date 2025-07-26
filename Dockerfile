@@ -1,7 +1,7 @@
-FROM node:22.14-alpine AS base
+FROM node:22.17-alpine AS base
 
 FROM base AS base_with_proper_corepack
-RUN npm install -g corepack@0.31.0
+RUN npm install -g corepack@0.33.0
 
 FROM base_with_proper_corepack AS deps
 WORKDIR /app
