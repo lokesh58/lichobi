@@ -267,7 +267,7 @@ export class CommandRegistry {
         case ApplicationCommandOptionType.String:
           builder.addStringOption((o) => {
             o.setName(option.name)
-              .setDescription(o.description)
+              .setDescription(option.description)
               .setRequired(option.required ?? false)
               .setAutocomplete(option.autocomplete ?? false);
             if (option.minLength !== undefined) {
@@ -285,7 +285,7 @@ export class CommandRegistry {
         case ApplicationCommandOptionType.Channel:
           builder.addChannelOption((o) => {
             o.setName(option.name)
-              .setDescription(o.description)
+              .setDescription(option.description)
               .setRequired(option.required ?? false);
             if (option.channelTypes) {
               o.addChannelTypes(...option.channelTypes);
