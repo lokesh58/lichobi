@@ -1,274 +1,170 @@
-import {
-  LichobiCommand,
-  UserDisplayableError,
-  UserInputError,
-} from "#lichobi/framework";
+import { LichobiCommand } from "#lichobi/framework";
 import { AIService, AIMessage } from "#root/utils/index.js";
 import {
-  ApplicationCommandOptionType,
-  ChatInputCommandInteraction,
-  EmbedBuilder,
   Message,
-  Colors,
   ChannelType,
+  TextChannel,
+  DMChannel,
+  NewsChannel,
 } from "discord.js";
-
-type ChatCommandData = {
-  options: readonly [
-    {
-      name: "query";
-      description: "Your question or prompt for the AI";
-      type: ApplicationCommandOptionType.String;
-      required: true;
-      maxLength: 2000;
-    },
-    {
-      name: "context_messages";
-      description: "Number of recent messages to include as context (1-100)";
-      type: ApplicationCommandOptionType.Integer;
-      required: false;
-      minValue: 1;
-      maxValue: 100;
-    },
-    {
-      name: "include_usernames";
-      description: "Include usernames in context messages";
-      type: ApplicationCommandOptionType.Boolean;
-      required: false;
-    },
-  ];
-};
 
 export class ChatCommand extends LichobiCommand(
   LichobiCommand.Base({
     name: "chat",
-    description: "Chat with AI assistant with optional channel context",
+    description: "Have a conversation with the bot!",
   }),
-  LichobiCommand.ChatInputCommandMixin<"cached", ChatCommandData>({
-    options: [
-      {
-        name: "query",
-        description: "Your question or prompt for the AI",
-        type: ApplicationCommandOptionType.String,
-        required: true,
-        maxLength: 2000,
-      },
-      {
-        name: "context_messages",
-        description: "Number of recent messages to include as context (1-100)",
-        type: ApplicationCommandOptionType.Integer,
-        required: false,
-        minValue: 1,
-        maxValue: 100,
-      },
-      {
-        name: "include_usernames",
-        description: "Include usernames in context messages",
-        type: ApplicationCommandOptionType.Boolean,
-        required: false,
-      },
-    ],
+  LichobiCommand.LegacyMessageCommandMixin({
+    argsUsage: {
+      expectedArgs: "<message>",
+      description:
+        "Send a message or question to the bot. The bot will respond with helpful answers based on its knowledge.",
+      examples: [
+        {
+          sampleArgs: "How are you?",
+          description:
+            "Ask the bot how it's doing - a friendly greeting to start a conversation.",
+        },
+        {
+          sampleArgs: "Explain how loops work in programming",
+          description:
+            "Ask questions about programming concepts, explanations, or technical topics.",
+        },
+        {
+          sampleArgs: "What is the capital of France?",
+          description:
+            "Ask general knowledge questions that the bot can answer from its training data.",
+        },
+      ],
+    },
   }),
-  LichobiCommand.LegacyMessageCommandMixin(),
 ) {
-  public override async handleChatInput(
-    interaction: ChatInputCommandInteraction<"cached">,
-  ): Promise<void> {
-    const options = this.extractChatInputOptionsData(interaction);
-    
-    await interaction.deferReply();
+  private readonly DOG_SYSTEM_PROMPT = `You are a friendly pet dog in a Discord server with close friends. You should respond with the personality and mannerisms of an excited, loyal, and playful dog who loves their human friends. Here are your characteristics:
 
-    try {
-      const messages = await this.buildMessages(
-        interaction.channel!,
-        options.query,
-        options.context_messages || 0,
-        options.include_usernames ?? true,
+- You're enthusiastic and energetic, often using exclamation marks
+- You love your human friends unconditionally and show it
+- You might occasionally mention dog-like activities (playing fetch, going for walks, treats, etc.)
+- You're helpful and want to please your humans
+- You can be a bit silly and playful in your responses
+- You understand human concepts but express them with dog-like enthusiasm
+- Use dog-related expressions occasionally (woof, tail wagging, etc.) but don't overdo it
+- You're intelligent but maintain that lovable dog personality
+
+Keep your responses conversational, friendly, and maintain the dog persona while still being helpful and informative when needed.`;
+
+  async handleLegacyMessage(message: Message, commandArgString: string) {
+    const userMessage = commandArgString;
+    const { channel, channelId } = message;
+    if (!channel.isSendable()) {
+      this.bot.logger.error(
+        `chat used in non-sendable channel (id: ${channelId})`,
       );
-
-      const aiService = AIService.getInstance();
-      const response = await aiService.generateResponse(messages);
-
-      const embed = this.buildResponseEmbed(
-        options.query,
-        response.content,
-        options.context_messages || 0,
-        response.usage,
-      );
-
-      await interaction.editReply({ embeds: [embed] });
-    } catch (error) {
-      if (error instanceof UserDisplayableError) {
-        const errorEmbed = new EmbedBuilder()
-          .setTitle("❌ Error")
-          .setDescription(error.message)
-          .setColor(Colors.Red);
-        await interaction.editReply({ embeds: [errorEmbed] });
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  public override async handleLegacyMessage(message: Message): Promise<void> {
-    const args = message.content.split(' ').slice(1);
-    if (args.length === 0) {
-      throw new UserInputError(
-        "Please provide a query. Usage: `!chat <your question>`"
-      );
-    }
-
-    const query = args.join(' ');
-    let typing: Promise<void> | undefined;
-    if ('sendTyping' in message.channel) {
-      typing = message.channel.sendTyping();
+      return;
     }
 
     try {
-      const messages = await this.buildMessages(message.channel, query, 0, true);
-      const aiService = AIService.getInstance();
-      const response = await aiService.generateResponse(messages);
+      await channel.sendTyping();
+      const response = await this.generateChatResponse(
+        message.channel,
+        userMessage,
+        message.author.displayName,
+      );
 
-      await typing;
-      const embed = this.buildResponseEmbed(query, response.content, 0, response.usage);
-      await message.reply({ embeds: [embed] });
+      // Send a normal message reply instead of an embed
+      await message.reply(response);
     } catch (error) {
-      await typing;
-      if (error instanceof UserDisplayableError) {
-        const errorEmbed = new EmbedBuilder()
-          .setTitle("❌ Error")
-          .setDescription(error.message)
-          .setColor(Colors.Red);
-        await message.reply({ embeds: [errorEmbed] });
-      } else {
-        throw error;
-      }
+      this.bot.logger.error("Error in chat command:", error);
+
+      // Send a simple error message
+      await message.reply(
+        "Woof! Something went wrong while I was thinking. Can you try again? 🐕",
+      );
     }
   }
 
-  private async buildMessages(
-    channel: Message['channel'] | ChatInputCommandInteraction<'cached'>['channel'],
-    query: string,
-    contextCount: number,
-    includeUsernames: boolean,
-  ): Promise<AIMessage[]> {
-    const messages: AIMessage[] = [];
-
-    // Add system message
-    messages.push({
-      role: 'system',
-      content: 'You are a helpful AI assistant in a Discord server. Provide concise, helpful responses.',
-    });
-
-    // Fetch context messages if requested
-    if (contextCount > 0) {
-      try {
-        const contextMessages = await this.fetchContextMessages(
-          channel,
-          contextCount,
-          includeUsernames,
-        );
-        
-        if (contextMessages.length > 0) {
-          messages.push({
-            role: 'system',
-            content: `Here are the ${contextMessages.length} most recent messages from this channel for context:\n\n${contextMessages}`,
-          });
-        }
-      } catch (error) {
-        // If we can't fetch context, continue without it
-        console.warn('Failed to fetch context messages:', error);
-      }
-    }
-
-    // Add user query
-    messages.push({
-      role: 'user',
-      content: query,
-    });
-
-    return messages;
-  }
-
-  private async fetchContextMessages(
-    channel: Message['channel'] | ChatInputCommandInteraction<'cached'>['channel'],
-    count: number,
-    includeUsernames: boolean,
+  private async generateChatResponse(
+    channel: Message["channel"],
+    userMessage: string,
+    userName: string,
   ): Promise<string> {
-    // Check if we can read message history
-    if (!channel || !channel.isTextBased() || channel.type === ChannelType.DM) {
-      return '';
+    const aiService = AIService.getInstance();
+
+    // Build the messages array starting with system prompt
+    const messages: AIMessage[] = [
+      {
+        role: "system",
+        content: this.DOG_SYSTEM_PROMPT,
+      },
+    ];
+
+    // Add recent channel context if it's a text-based channel
+    if (this.isTextBasedChannel(channel)) {
+      try {
+        const recentMessages = await this.getRecentMessages(channel);
+        messages.push(...recentMessages);
+      } catch (error) {
+        console.warn("Could not fetch recent messages for context:", error);
+      }
     }
 
+    // Add the current user message
+    messages.push({
+      role: "user",
+      content: `${userName}: ${userMessage}`,
+    });
+
+    const response = await aiService.generateResponse(messages);
+    return response.content;
+  }
+
+  private async getRecentMessages(
+    channel: TextChannel | DMChannel | NewsChannel | ThreadChannel,
+  ): Promise<AIMessage[]> {
     try {
-      const messages = await channel.messages.fetch({ limit: count + 1 }); // +1 to exclude current message
-      const contextMessages = Array.from(messages.values())
-        .reverse() // Oldest first
-        .slice(0, count) // Take only requested count
-        .filter((msg): msg is Message<true> => msg instanceof Message && !msg.author.bot && msg.content.trim() !== '') // Filter out bots and empty messages
-        .map(msg => this.sanitizeMessage(msg.content, msg.author.displayName, includeUsernames));
+      // Fetch the last 10 messages (excluding the current one)
+      const messages = await channel.messages.fetch({ limit: 10 });
+      const contextMessages: AIMessage[] = [];
 
-      return contextMessages.join('\n');
-    } catch {
-      // Permission error or other issue
-      return '';
+      // Convert Discord messages to AI messages, in chronological order
+      const sortedMessages = Array.from(messages.values()).sort(
+        (a, b) => a.createdTimestamp - b.createdTimestamp,
+      );
+
+      for (const msg of sortedMessages) {
+        // Skip bot messages and system messages
+        if (msg.author.bot || msg.system) continue;
+
+        // Skip messages that are just commands
+        if (msg.content.startsWith("!") || msg.content.startsWith("/"))
+          continue;
+
+        // Only include messages with actual content
+        if (msg.content.trim().length === 0) continue;
+
+        contextMessages.push({
+          role: "user",
+          content: `${msg.author.displayName}: ${msg.content}`,
+        });
+      }
+
+      return contextMessages;
+    } catch (error) {
+      console.warn("Error fetching recent messages:", error);
+      return [];
     }
   }
 
-  private sanitizeMessage(content: string, username: string, includeUsername: boolean): string {
-    // Remove mentions, clean up formatting
-    let sanitized = content
-      .replace(/<@!?\d+>/g, '@user') // Replace user mentions
-      .replace(/<#\d+>/g, '#channel') // Replace channel mentions
-      .replace(/<@&\d+>/g, '@role') // Replace role mentions
-      .replace(/```[\s\S]*?```/g, '[code block]') // Replace code blocks
-      .replace(/`([^`]+)`/g, '$1') // Remove inline code formatting
-      .trim();
+  private isTextBasedChannel(
+    channel: Message["channel"],
+  ): channel is TextChannel | DMChannel | NewsChannel | ThreadChannel {
+    if (!channel) return false;
 
-    // Truncate very long messages
-    if (sanitized.length > 200) {
-      sanitized = sanitized.substring(0, 197) + '...';
-    }
-
-    return includeUsername ? `${username}: ${sanitized}` : sanitized;
-  }
-
-  private buildResponseEmbed(
-    query: string,
-    response: string,
-    contextCount: number,
-    usage?: { inputTokens?: number; outputTokens?: number },
-  ): EmbedBuilder {
-    const embed = new EmbedBuilder()
-      .setTitle("🤖 AI Response")
-      .setColor(Colors.Blue);
-
-    // Truncate query for display
-    const displayQuery = query.length > 100 ? query.substring(0, 97) + '...' : query;
-    embed.addFields({ name: "Query", value: displayQuery, inline: false });
-
-    // Truncate response if too long for Discord embed
-    const maxResponseLength = 2000;
-    const displayResponse = response.length > maxResponseLength 
-      ? response.substring(0, maxResponseLength - 50) + '\n\n*[Response truncated]*'
-      : response;
-
-    embed.addFields({ name: "Response", value: displayResponse, inline: false });
-
-    // Add context info if used
-    if (contextCount > 0) {
-      embed.setFooter({ text: `Used ${contextCount} messages as context` });
-    }
-
-    // Add usage info if available
-    if (usage?.inputTokens || usage?.outputTokens) {
-      const usageText = `Tokens: ${usage.inputTokens || 0} in, ${usage.outputTokens || 0} out`;
-      const existingFooter = embed.data.footer?.text;
-      embed.setFooter({ 
-        text: existingFooter ? `${existingFooter} • ${usageText}` : usageText 
-      });
-    }
-
-    return embed;
+    return (
+      channel.type === ChannelType.GuildText ||
+      channel.type === ChannelType.DM ||
+      channel.type === ChannelType.GuildNews ||
+      channel.type === ChannelType.PublicThread ||
+      channel.type === ChannelType.PrivateThread ||
+      channel.type === ChannelType.AnnouncementThread
+    );
   }
 }
