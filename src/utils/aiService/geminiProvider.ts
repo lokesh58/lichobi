@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
-import { AIMessage, AIProvider, AIResponse } from "./aiService.js";
-import { UserDisplayableError } from "#lichobi/framework";
+import { LichobiError, UserDisplayableError } from "#lichobi/framework";
+import { AIMessage, AIProvider, AIResponse } from "./base.js";
 
 export class GeminiProvider extends AIProvider {
   private ai: GoogleGenAI;
@@ -16,7 +16,7 @@ export class GeminiProvider extends AIProvider {
       const contents = this.convertMessages(messages);
 
       const response = await this.ai.models.generateContent({
-        model: "gemini-2.0-flash-001",
+        model: "gemini-2.5-flash",
         contents,
       });
 
@@ -30,7 +30,7 @@ export class GeminiProvider extends AIProvider {
 
       return {
         content: response.text || "",
-        usage: Object.keys(usage).length > 0 ? usage : undefined,
+        usage,
       };
     } catch (error) {
       if (error instanceof Error) {
@@ -38,7 +38,7 @@ export class GeminiProvider extends AIProvider {
           error.message.includes("API_KEY_INVALID") ||
           error.message.includes("Invalid API key")
         ) {
-          throw new UserDisplayableError("Invalid AI API key configuration.");
+          throw new LichobiError("Invalid AI API key configuration.");
         }
         if (error.message.includes("QUOTA_EXCEEDED")) {
           throw new UserDisplayableError(

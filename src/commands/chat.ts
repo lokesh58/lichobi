@@ -1,12 +1,6 @@
 import { LichobiCommand } from "#lichobi/framework";
 import { AIService, AIMessage } from "#root/utils/index.js";
-import {
-  Message,
-  ChannelType,
-  TextChannel,
-  DMChannel,
-  NewsChannel,
-} from "discord.js";
+import { Message, SendableChannels } from "discord.js";
 
 export class ChatCommand extends LichobiCommand(
   LichobiCommand.Base({
@@ -51,8 +45,7 @@ export class ChatCommand extends LichobiCommand(
 
 Keep your responses conversational, friendly, and maintain the dog persona while still being helpful and informative when needed.`;
 
-  async handleLegacyMessage(message: Message, commandArgString: string) {
-    const userMessage = commandArgString;
+  async handleLegacyMessage(message: Message) {
     const { channel, channelId } = message;
     if (!channel.isSendable()) {
       this.bot.logger.error(
@@ -61,30 +54,15 @@ Keep your responses conversational, friendly, and maintain the dog persona while
       return;
     }
 
-    try {
-      await channel.sendTyping();
-      const response = await this.generateChatResponse(
-        message.channel,
-        userMessage,
-        message.author.displayName,
-      );
+    await channel.sendTyping();
+    const response = await this.generateChatResponse(channel);
 
-      // Send a normal message reply instead of an embed
-      await message.reply(response);
-    } catch (error) {
-      this.bot.logger.error("Error in chat command:", error);
-
-      // Send a simple error message
-      await message.reply(
-        "Woof! Something went wrong while I was thinking. Can you try again? 🐕",
-      );
-    }
+    // Send a normal message reply instead of an embed
+    await message.reply(response);
   }
 
   private async generateChatResponse(
-    channel: Message["channel"],
-    userMessage: string,
-    userName: string,
+    channel: SendableChannels,
   ): Promise<string> {
     const aiService = AIService.getInstance();
 
@@ -96,75 +74,31 @@ Keep your responses conversational, friendly, and maintain the dog persona while
       },
     ];
 
-    // Add recent channel context if it's a text-based channel
-    if (this.isTextBasedChannel(channel)) {
-      try {
-        const recentMessages = await this.getRecentMessages(channel);
-        messages.push(...recentMessages);
-      } catch (error) {
-        console.warn("Could not fetch recent messages for context:", error);
-      }
-    }
-
-    // Add the current user message
-    messages.push({
-      role: "user",
-      content: `${userName}: ${userMessage}`,
-    });
+    const recentMessages = await this.getRecentMessages(channel);
+    messages.push(...recentMessages);
 
     const response = await aiService.generateResponse(messages);
     return response.content;
   }
 
   private async getRecentMessages(
-    channel: TextChannel | DMChannel | NewsChannel | ThreadChannel,
+    channel: SendableChannels,
   ): Promise<AIMessage[]> {
-    try {
-      // Fetch the last 10 messages (excluding the current one)
-      const messages = await channel.messages.fetch({ limit: 10 });
-      const contextMessages: AIMessage[] = [];
+    const messages = await channel.messages.fetch({ limit: 11 });
+    const contextMessages: AIMessage[] = [];
 
-      // Convert Discord messages to AI messages, in chronological order
-      const sortedMessages = Array.from(messages.values()).sort(
-        (a, b) => a.createdTimestamp - b.createdTimestamp,
-      );
-
-      for (const msg of sortedMessages) {
-        // Skip bot messages and system messages
-        if (msg.author.bot || msg.system) continue;
-
-        // Skip messages that are just commands
-        if (msg.content.startsWith("!") || msg.content.startsWith("/"))
-          continue;
-
-        // Only include messages with actual content
-        if (msg.content.trim().length === 0) continue;
-
-        contextMessages.push({
-          role: "user",
-          content: `${msg.author.displayName}: ${msg.content}`,
-        });
-      }
-
-      return contextMessages;
-    } catch (error) {
-      console.warn("Error fetching recent messages:", error);
-      return [];
-    }
-  }
-
-  private isTextBasedChannel(
-    channel: Message["channel"],
-  ): channel is TextChannel | DMChannel | NewsChannel | ThreadChannel {
-    if (!channel) return false;
-
-    return (
-      channel.type === ChannelType.GuildText ||
-      channel.type === ChannelType.DM ||
-      channel.type === ChannelType.GuildNews ||
-      channel.type === ChannelType.PublicThread ||
-      channel.type === ChannelType.PrivateThread ||
-      channel.type === ChannelType.AnnouncementThread
+    // Convert Discord messages to AI messages, in chronological order
+    const sortedMessages = Array.from(messages.values()).sort(
+      (a, b) => a.createdTimestamp - b.createdTimestamp,
     );
+
+    for (const msg of sortedMessages) {
+      contextMessages.push({
+        role: "user",
+        content: `${msg.author.displayName}: ${msg.content}`,
+      });
+    }
+
+    return contextMessages;
   }
 }
