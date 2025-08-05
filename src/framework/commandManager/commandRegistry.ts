@@ -1,4 +1,3 @@
-import { Bot, LichobiError } from "#lichobi/framework";
 import {
   ApplicationCommandDataResolvable,
   ApplicationCommandOptionType,
@@ -9,12 +8,14 @@ import {
 } from "discord.js";
 import { readdirSync } from "fs";
 import path from "path";
+import { Bot } from "../bot.js";
 import {
   BaseCommand,
   isLichobiCommandConstructor,
   LichobiCommandType,
   LichobiCommandTypeToClassMap,
 } from "../command/index.js";
+import { LichobiError } from "../errors.js";
 
 export class CommandRegistry {
   private static readonly ValidExtensions = [".js", ".mjs", ".cjs", ".ts"];

@@ -1,4 +1,5 @@
 import { Client, ClientOptions, Events } from "discord.js";
+import { ChatManager, ChatManagerOptions } from "./chatManager/index.js";
 import {
   CommandManager,
   CommandManagerOptions,
@@ -13,6 +14,7 @@ export type BotOptions = {
   loggerOptions?: LoggerOptions;
   prefixManagerOptions: PrefixManagerOptions;
   commandManagerOptions: CommandManagerOptions;
+  chatManagerOptions: ChatManagerOptions;
 };
 
 export class Bot<Ready extends boolean = boolean> {
@@ -20,6 +22,7 @@ export class Bot<Ready extends boolean = boolean> {
   public readonly logger: Logger;
   public readonly prefixManager: PrefixManager;
   public readonly commandManager: CommandManager;
+  public readonly chatManager: ChatManager;
   public readonly eventManager: EventManager;
 
   private ready: boolean = false;
@@ -34,6 +37,10 @@ export class Bot<Ready extends boolean = boolean> {
     this.commandManager = new CommandManager(
       this as Bot<true>,
       options.commandManagerOptions,
+    );
+    this.chatManager = new ChatManager(
+      this as Bot<true>,
+      options.chatManagerOptions,
     );
     this.eventManager = new EventManager(this as Bot<true>);
   }
@@ -52,6 +59,7 @@ export class Bot<Ready extends boolean = boolean> {
     });
     await Promise.all([
       this.commandManager.loadCommands(),
+      this.chatManager.loadChatParticipants(),
       this.client.login(token),
       clientReadyPromise,
     ]);
@@ -62,6 +70,7 @@ export class Bot<Ready extends boolean = boolean> {
 
     await this.commandManager.registerCommandsOnDiscord();
     this.commandManager.startCommandHandlers();
+    this.chatManager.startChatHandler();
 
     this.ready = true;
     this.logger.info(`Ready! Logged in as ${this.client.user.tag}`);

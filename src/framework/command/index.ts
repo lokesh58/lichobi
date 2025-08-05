@@ -22,6 +22,7 @@ import {
   UserContextMenuCommandMixin,
   UserContextMenuCommandMixinClass,
 } from "./userContextMenuCommandMixin.js";
+import { ConcreteConstructor } from "../utils/types.js";
 
 export { BaseCommand } from "./base.js";
 export { BaseChatInputCommandMixin } from "./chatInputCommandMixin.js";
@@ -80,11 +81,6 @@ export type LichobiCommandTypeToClassMap = {
 export function isLichobiCommand(value: unknown): value is BaseCommand {
   return hasMixin(value, BaseCommand);
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ConcreteConstructor<T extends abstract new (...args: any[]) => any> = new (
-  ...args: ConstructorParameters<T>
-) => InstanceType<T>;
 
 export function isLichobiCommandConstructor(
   value: unknown,
