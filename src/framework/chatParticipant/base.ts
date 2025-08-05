@@ -35,4 +35,3 @@ export function ChatParticipant(
 }
 
 export type BaseChatParticipantClass = ReturnType<typeof ChatParticipant>;
-

@@ -20,4 +20,3 @@ export class PrefixManager {
     return this.defaultPrefix;
   }
 }
-
