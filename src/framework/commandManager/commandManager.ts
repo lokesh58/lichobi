@@ -19,7 +19,6 @@ import { CommandRegistry } from "./commandRegistry.js";
 
 export type CommandManagerOptions = {
   commandsFolder: string;
-  defaultPrefix: string;
   devGuildId?: Snowflake | null;
 };
 
@@ -27,14 +26,12 @@ export class CommandManager {
   private readonly bot: Bot<true>;
   private readonly commandsFolder: string;
   public readonly commands: CommandRegistry;
-  private readonly defaultPrefix: string;
   private readonly devGuildId?: Snowflake;
 
   constructor(bot: Bot<true>, options: CommandManagerOptions) {
     this.bot = bot;
     this.commands = new CommandRegistry(bot);
     this.commandsFolder = options.commandsFolder;
-    this.defaultPrefix = options.defaultPrefix;
     if (options.devGuildId) this.devGuildId = options.devGuildId;
   }
 
@@ -157,7 +154,7 @@ export class CommandManager {
           if (message.author.bot) {
             return;
           }
-          const prefix = await this.getLegacyMessagePrefix();
+          const prefix = await this.bot.prefixManager.getCommandPrefix(message);
           if (!message.content.startsWith(prefix)) {
             return;
           }
@@ -191,10 +188,6 @@ export class CommandManager {
         },
       }),
     );
-  }
-
-  private async getLegacyMessagePrefix(): Promise<string> {
-    return this.defaultPrefix; // TODO: make this configurable per guild, maybe a prefix manager?
   }
 
   private extractCommandAndArgsFromMessage(
