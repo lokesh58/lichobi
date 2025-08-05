@@ -25,6 +25,9 @@ const bot = new Bot({
     commandsFolder: join(__dirname, "commands"),
     devGuildId: config.devGuildId || null,
   },
+  chatManagerOptions: {
+    chatParticipantsFolder: join(__dirname, "chatParticipants"),
+  },
 });
 
 bot.bootUp(config.discordBotToken);
