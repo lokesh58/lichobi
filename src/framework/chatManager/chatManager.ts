@@ -57,6 +57,7 @@ export class ChatManager {
                 participant.getResponse(message),
               ]);
               await message.reply(response);
+              // Only one chat participant should respond to one message
               break;
             } catch (error) {
               this.bot.logger.error(
