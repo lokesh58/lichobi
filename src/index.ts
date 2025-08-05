@@ -18,9 +18,11 @@ const bot = new Bot({
   loggerOptions: {
     minLogLevel: config.minLogLevel ?? "info",
   },
+  prefixManagerOptions: {
+    defaultPrefix: config.defaultPrefix || "!",
+  },
   commandManagerOptions: {
     commandsFolder: join(__dirname, "commands"),
-    defaultPrefix: config.defaultPrefix || "!",
     devGuildId: config.devGuildId || null,
   },
 });

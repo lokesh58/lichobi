@@ -6,16 +6,19 @@ import {
 import { LichobiError } from "./errors.js";
 import { EventManager } from "./eventManager/index.js";
 import { Logger, LoggerOptions } from "./logger.js";
+import { PrefixManager, PrefixManagerOptions } from "./prefixManager/index.js";
 
 export type BotOptions = {
   clientOptions: ClientOptions;
   loggerOptions?: LoggerOptions;
+  prefixManagerOptions: PrefixManagerOptions;
   commandManagerOptions: CommandManagerOptions;
 };
 
 export class Bot<Ready extends boolean = boolean> {
   public readonly client: Client<Ready>;
   public readonly logger: Logger;
+  public readonly prefixManager: PrefixManager;
   public readonly commandManager: CommandManager;
   public readonly eventManager: EventManager;
 
@@ -24,6 +27,10 @@ export class Bot<Ready extends boolean = boolean> {
   constructor(options: BotOptions) {
     this.client = new Client(options.clientOptions);
     this.logger = new Logger(options.loggerOptions);
+    this.prefixManager = new PrefixManager(
+      this as Bot<true>,
+      options.prefixManagerOptions,
+    );
     this.commandManager = new CommandManager(
       this as Bot<true>,
       options.commandManagerOptions,
