@@ -19,9 +19,69 @@ export class DogChatParticipant extends ChatParticipant({
 
 Focus on being useful while adding just a touch of dog personality through clever wordplay when appropriate.`;
 
+  // Track active conversations: channelId -> { userId, lastInteraction }
+  private conversationContext = new Map<string, { userId: string; lastInteraction: number }>();
+  private readonly CONVERSATION_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
   public async shouldRespond(message: Message): Promise<boolean> {
-    // Respond when the bot is mentioned/tagged
-    return message.mentions.has(this.bot.client.user);
+    // Always respond when the bot is mentioned/tagged
+    if (message.mentions.has(this.bot.client.user)) {
+      this.updateConversationContext(message);
+      return true;
+    }
+
+    // Always respond in DMs
+    if (message.channel.isDMBased()) {
+      this.updateConversationContext(message);
+      return true;
+    }
+
+    // Check if this is a reply to the bot's message
+    if (await this.isReplyToBotMessage(message)) {
+      this.updateConversationContext(message);
+      return true;
+    }
+
+    // Check if we're in an active conversation with this user in this channel
+    if (this.isInActiveConversation(message)) {
+      this.updateConversationContext(message);
+      return true;
+    }
+
+    return false;
+  }
+
+  private updateConversationContext(message: Message): void {
+    const key = message.channel.id;
+    this.conversationContext.set(key, {
+      userId: message.author.id,
+      lastInteraction: Date.now()
+    });
+  }
+
+  private isInActiveConversation(message: Message): boolean {
+    const context = this.conversationContext.get(message.channel.id);
+    if (!context) return false;
+
+    // Check if conversation has timed out
+    if (Date.now() - context.lastInteraction > this.CONVERSATION_TIMEOUT) {
+      this.conversationContext.delete(message.channel.id);
+      return false;
+    }
+
+    // Check if it's the same user we were talking to
+    return context.userId === message.author.id;
+  }
+
+  private async isReplyToBotMessage(message: Message): Promise<boolean> {
+    if (!message.reference?.messageId) return false;
+
+    try {
+      const repliedMessage = await message.channel.messages.fetch(message.reference.messageId);
+      return repliedMessage.author.id === this.bot.client.user?.id;
+    } catch {
+      return false;
+    }
   }
 
   public async getResponse(message: Message): Promise<string> {
