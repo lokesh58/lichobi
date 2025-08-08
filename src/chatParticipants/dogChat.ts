@@ -1,6 +1,6 @@
 import { Message, SendableChannels } from "discord.js";
 import { ChatParticipant } from "../framework/chatParticipant/base.js";
-import { AIService, AIMessage } from "../utils/index.js";
+import { AIService, AIMessage, LocalCache } from "../utils/index.js";
 
 export class DogChatParticipant extends ChatParticipant({
   name: "dog-chat",
@@ -19,9 +19,11 @@ export class DogChatParticipant extends ChatParticipant({
 
 Focus on being useful while adding just a touch of dog personality through clever wordplay when appropriate.`;
 
-  // Track active conversations: channelId -> { userId, lastInteraction }
-  private conversationContext = new Map<string, { userId: string; lastInteraction: number }>();
-  private readonly CONVERSATION_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+  // Track active conversations using LocalCache with automatic expiration
+  private conversationContext = new LocalCache<{ userId: string; lastInteraction: number }>({
+    ttlSeconds: 5 * 60, // 5 minutes
+    cleanupIntervalSeconds: 60, // Clean up every minute
+  });
 
   public async shouldRespond(message: Message): Promise<boolean> {
     // Always respond when the bot is mentioned/tagged
@@ -63,13 +65,8 @@ Focus on being useful while adding just a touch of dog personality through cleve
     const context = this.conversationContext.get(message.channel.id);
     if (!context) return false;
 
-    // Check if conversation has timed out
-    if (Date.now() - context.lastInteraction > this.CONVERSATION_TIMEOUT) {
-      this.conversationContext.delete(message.channel.id);
-      return false;
-    }
-
     // Check if it's the same user we were talking to
+    // LocalCache handles TTL expiration automatically, so no manual timeout check needed
     return context.userId === message.author.id;
   }
 
