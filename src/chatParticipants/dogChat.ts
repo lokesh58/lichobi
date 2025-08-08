@@ -1,37 +1,13 @@
-import { LichobiCommand } from "#lichobi/framework";
-import { AIService, AIMessage } from "#root/utils/index.js";
 import { Message, SendableChannels } from "discord.js";
+import { ChatParticipant } from "../framework/chatParticipant/base.js";
+import { AIService, AIMessage } from "../utils/index.js";
 
-export class ChatCommand extends LichobiCommand(
-  LichobiCommand.Base({
-    name: "chat",
-    description: "Have a conversation with the bot!",
-  }),
-  LichobiCommand.LegacyMessageCommandMixin({
-    argsUsage: {
-      expectedArgs: "<message>",
-      description:
-        "Send a message or question to the bot. The bot will respond with helpful answers based on its knowledge.",
-      examples: [
-        {
-          sampleArgs: "How are you?",
-          description:
-            "Ask the bot how it's doing - a friendly greeting to start a conversation.",
-        },
-        {
-          sampleArgs: "Explain how loops work in programming",
-          description:
-            "Ask questions about programming concepts, explanations, or technical topics.",
-        },
-        {
-          sampleArgs: "What is the capital of France?",
-          description:
-            "Ask general knowledge questions that the bot can answer from its training data.",
-        },
-      ],
-    },
-  }),
-) {
+export class DogChatParticipant extends ChatParticipant({
+  name: "dog-chat",
+  description:
+    "A helpful assistant with a subtle dog personality for chat conversations",
+  priority: 100,
+}) {
   private readonly DOG_SYSTEM_PROMPT = `You are a helpful assistant with a subtle dog personality. Keep your responses concise and to the point while occasionally including light dog puns or references. Here are your characteristics:
 
 - Keep responses short and direct
@@ -43,20 +19,16 @@ export class ChatCommand extends LichobiCommand(
 
 Focus on being useful while adding just a touch of dog personality through clever wordplay when appropriate.`;
 
-  async handleLegacyMessage(message: Message) {
-    const { channel, channelId } = message;
-    if (!channel.isSendable()) {
-      this.bot.logger.error(
-        `chat used in non-sendable channel (id: ${channelId})`,
-      );
-      return;
-    }
+  public async shouldRespond(message: Message): Promise<boolean> {
+    // Respond when the bot is mentioned/tagged
+    return message.mentions.has(this.bot.client.user);
+  }
 
-    await channel.sendTyping();
-    const response = await this.generateChatResponse(channel);
-
-    // Send a normal message reply instead of an embed
-    await message.reply(response);
+  public async getResponse(message: Message): Promise<string> {
+    const response = await this.generateChatResponse(
+      message.channel as SendableChannels,
+    );
+    return response;
   }
 
   private async generateChatResponse(
@@ -100,3 +72,4 @@ Focus on being useful while adding just a touch of dog personality through cleve
     return contextMessages;
   }
 }
+
