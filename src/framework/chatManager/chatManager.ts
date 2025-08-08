@@ -56,7 +56,7 @@ export class ChatManager {
                 channel.sendTyping(),
                 participant.getResponse(message),
               ]);
-              await message.reply(response);
+              await channel.send(response);
               // Only one chat participant should respond to one message
               break;
             } catch (error) {
