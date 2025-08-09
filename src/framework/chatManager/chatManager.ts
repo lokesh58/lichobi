@@ -56,7 +56,16 @@ export class ChatManager {
                 channel.sendTyping(),
                 participant.getResponse(message),
               ]);
-              await message.reply(response);
+
+              // Truncate if over Discord's 2000 character limit
+              const finalResponse =
+                response.length > 2000
+                  ? response.substring(0, 1950) + "\n..."
+                  : response;
+
+              await channel.send({
+                content: finalResponse,
+              });
               // Only one chat participant should respond to one message
               break;
             } catch (error) {
