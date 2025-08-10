@@ -102,7 +102,7 @@ Focus on being useful while adding just a touch of dog personality through cleve
     );
     return sortedMessages.map((msg) => ({
       role: "user",
-      content: `${msg.author.tag} (${msg.author.id}): ${msg.content}`,
+      content: `${msg.author.displayName} (${msg.author.id}): ${msg.content}`,
     }));
   }
 }
